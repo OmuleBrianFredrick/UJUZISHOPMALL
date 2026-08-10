@@ -35,6 +35,14 @@
 }
 
 
+/* Ensures the page always fills the full viewport height, needed for the footer to stick to the bottom */
+
+html,
+body {
+    height: 100%;
+}
+
+
 /* Background and base text color for the public landing page */
 
 .landing-body {
@@ -179,7 +187,7 @@
 }
 
 
-/* Shared spacing for each content section on the landing page, alternating background creates visual rhythm */
+/* Shared spacing for each content section on the landing page */
 
 .landing-section {
     max-width: 1040px;
@@ -272,10 +280,11 @@
     font-family: var(--font-mono);
     font-size: 12px;
     text-align: center;
+    overflow: hidden;
 }
 
 
-/* Dark footer bar at the bottom of the landing page, gives grounding contrast against the light page */
+/* Dark footer bar at the bottom of the landing page */
 
 .landing-footer {
     text-align: center;
@@ -287,17 +296,20 @@
 }
 
 
-/* Background and base text color for the logged-in dashboard pages */
+/* Base body styling for the dashboard, set up as a full-height flex column so the footer sticks to the bottom */
 
 .app-body {
     margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background: var(--cream-white);
     color: var(--coffee-brown);
     font-family: var(--font-body);
 }
 
 
-/* Top bar layout for the dashboard (logo + nav links) */
+/* Guest-only (login/register) top bar layout */
 
 .app-topbar {
     display: flex;
@@ -309,7 +321,7 @@
 }
 
 
-/* Dashboard logo/brand text style */
+/* Dashboard logo/brand text style, used in the guest top bar */
 
 .app-brand {
     font-family: var(--font-display);
@@ -331,7 +343,7 @@
 }
 
 
-/* Layout for dashboard nav links */
+/* Layout for guest top bar nav links */
 
 .app-nav {
     display: flex;
@@ -340,7 +352,7 @@
 }
 
 
-/* Default (inactive) dashboard nav link color */
+/* Default (inactive) guest nav link color */
 
 .app-nav a {
     color: var(--warm-gray);
@@ -349,7 +361,7 @@
 }
 
 
-/* Highlighted style for the current page's nav link */
+/* Highlighted style for the current guest page's nav link */
 
 .app-nav a.active {
     color: var(--coffee-brown);
@@ -357,7 +369,7 @@
 }
 
 
-/* Accent-colored pill button for "Register" in the dashboard nav */
+/* Accent-colored pill button for "Register" in the guest nav */
 
 .app-nav .btn-chip {
     background: var(--terracotta);
@@ -386,16 +398,18 @@
 }
 
 
-/* Centered content width and padding for all dashboard pages */
+/* Content width and padding for guest (login/register) pages, stretches to push the footer down */
 
 .app-main {
+    flex: 1;
     max-width: 1080px;
     margin: 0 auto;
     padding: 40px 24px 80px;
+    width: 100%;
 }
 
 
-/* Footer text at the bottom of dashboard pages */
+/* Footer for guest pages */
 
 .app-footer {
     text-align: center;
@@ -406,7 +420,218 @@
 }
 
 
-/* Main page title style used across dashboard pages (e.g. "Product Inventory") */
+/* Outer flex row containing the sidebar and the main content area, for logged-in pages */
+
+.app-shell {
+    flex: 1;
+    display: flex;
+}
+
+
+/* Sidebar navigation panel for logged-in pages */
+
+.sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, var(--coffee-brown), var(--charcoal-gray));
+    color: var(--cream-white);
+    padding: 28px 20px;
+}
+
+
+/* Sidebar brand/logo block */
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.sidebar-brand i {
+    font-size: 20px;
+    color: var(--golden-amber);
+}
+
+.sidebar-brand-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.sidebar-brand-tag {
+    font-size: 11px;
+    color: var(--golden-amber);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+}
+
+
+/* Small uppercase section labels inside the sidebar (Menu, Quick info) */
+
+.sidebar-section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #B8A98F;
+    margin: 22px 0 10px;
+}
+
+
+/* Sidebar navigation link list */
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #EFE6D8;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+}
+
+.sidebar-nav a i {
+    width: 16px;
+    text-align: center;
+}
+
+.sidebar-nav a:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+
+/* Highlighted style for the current page's sidebar link */
+
+.sidebar-nav a.active {
+    background: var(--terracotta);
+    color: #fff;
+    font-weight: 600;
+}
+
+
+/* Small "quick info" card at the bottom of the sidebar showing stock status */
+
+.sidebar-quick-info {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.quick-info-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #B8A98F;
+    margin-bottom: 6px;
+}
+
+.quick-info-value {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.quick-info-healthy {
+    color: #8FD9A8;
+}
+
+.quick-info-warning {
+    color: #F0A98A;
+}
+
+
+/* Column containing the top bar, main content, and footer for logged-in pages */
+
+.app-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+
+/* Top bar for logged-in dashboard pages (title, currency switcher, logout) */
+
+.app-topbar-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 32px;
+    background: var(--pure-white);
+    border-bottom: 1px solid var(--border-tan);
+}
+
+.topbar-title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--coffee-brown);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.signed-in-text {
+    font-size: 13px;
+    color: var(--warm-gray);
+}
+
+
+/* Currency switcher dropdown in the top bar */
+
+.currency-select {
+    padding: 6px 10px;
+    border: 1px solid var(--border-tan);
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    background: var(--pure-white);
+    color: var(--coffee-brown);
+}
+
+
+/* Smaller button variant used in the top bar */
+
+.btn-sm {
+    padding: 7px 14px;
+    font-size: 13px;
+}
+
+
+/* Main scrollable content area for logged-in pages, stretches to push the footer down */
+
+.app-main-inner {
+    flex: 1;
+    max-width: 1080px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px 24px 40px;
+}
+
+
+/* Footer for logged-in pages, pinned to the very bottom edge of the content area */
+
+.app-footer-edge {
+    text-align: center;
+    color: var(--warm-gray);
+    font-size: 12px;
+    padding: 18px 20px;
+    font-family: var(--font-mono);
+    border-top: 1px solid var(--border-tan);
+}
+
+
+/* Main page title style used across dashboard pages */
 
 .page-heading {
     font-family: var(--font-display);
@@ -465,9 +690,6 @@
     background: var(--pure-white);
 }
 
-
-/* Allows textareas to be resized vertically only */
-
 .form-group textarea {
     resize: vertical;
 }
@@ -482,7 +704,7 @@
 }
 
 
-/* Solid dark button used for primary form submissions (e.g. "Save Product") */
+/* Solid dark button used for primary form submissions */
 
 .btn-solid {
     background: var(--coffee-brown);
@@ -512,6 +734,56 @@
 }
 
 
+/* Stat card grid at the top of the products page */
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+    margin-bottom: 10px;
+}
+
+.stat-card {
+    border-radius: 14px;
+    padding: 22px 24px;
+    color: #fff;
+}
+
+.stat-card-value {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 600;
+}
+
+.stat-card-label {
+    font-size: 13px;
+    margin-top: 4px;
+    opacity: 0.9;
+}
+
+.stat-card-terracotta {
+    background: linear-gradient(135deg, var(--terracotta), #A6542A);
+}
+
+.stat-card-amber {
+    background: linear-gradient(135deg, var(--golden-amber), #A66B1E);
+}
+
+
+/* Container for the Stock In vs Stock Out chart */
+
+.chart-card {
+    margin-top: 30px;
+}
+
+.chart-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    margin: 0 0 18px;
+    color: var(--coffee-brown);
+}
+
+
 /* Table styling for the product inventory list */
 
 .inv-table {
@@ -523,9 +795,6 @@
     border: 1px solid var(--border-tan);
 }
 
-
-/* Table header row styling */
-
 .inv-table th {
     text-align: left;
     background: var(--soft-sand);
@@ -535,9 +804,6 @@
     color: var(--warm-gray);
     padding: 12px 16px;
 }
-
-
-/* Table cell styling and row divider lines */
 
 .inv-table td {
     padding: 14px 16px;
@@ -578,7 +844,7 @@
 }
 
 
-/* Small text-link actions in each table row (Stock In, Edit, Delete) */
+/* Small text-link actions in each table row */
 
 .row-actions a,
 .row-actions button {
@@ -592,16 +858,13 @@
     font-family: var(--font-body);
 }
 
-
-/* Darkens row action links/buttons on hover */
-
 .row-actions a:hover,
 .row-actions button:hover {
     color: var(--coffee-brown);
 }
 
 
-/* Green success message banner (e.g. after saving a product) */
+/* Green success message banner */
 
 .alert-success {
     background: rgba(61, 122, 79, 0.1);
@@ -613,7 +876,7 @@
 }
 
 
-/* Red error message banner (e.g. form validation errors) */
+/* Red error message banner */
 
 .alert-error {
     background: rgba(178, 58, 52, 0.08);
@@ -623,9 +886,6 @@
     margin-bottom: 22px;
     font-size: 14px;
 }
-
-
-/* Removes default list spacing inside error message banners */
 
 .alert-error ul {
     margin: 0;

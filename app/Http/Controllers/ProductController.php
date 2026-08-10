@@ -13,7 +13,13 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::orderBy('name')->get();
-        return view('products.index', compact('products'));
+
+        $totalProducts = $products->count();
+        $totalStock = $products->sum('quantity');
+        $stockInTotal = StockMovement::where('type', 'in')->sum('quantity');
+        $stockOutTotal = StockMovement::where('type', 'out')->sum('quantity');
+
+        return view('products.index', compact('products', 'totalProducts', 'totalStock', 'stockInTotal', 'stockOutTotal'));
     }
 
     public function create()
