@@ -1,0 +1,644 @@
+:root {
+    /* Main light background — warm ivory, used across the whole site */
+    --cream-white: #FDF8F2;
+    /* Secondary light surface — slightly deeper cream, used for section stripes and subtle contrast */
+    --soft-sand: #F3E9DA;
+    /* Card and panel backgrounds — pure white, sits on top of the cream background */
+    --pure-white: #FFFFFF;
+    /* Main heading and body text color — deep warm brown, easy to read on light backgrounds */
+    --coffee-brown: #3B2A20;
+    /* Dark color used for the footer and high-contrast text moments */
+    --charcoal-gray: #2C2620;
+    /* Primary accent color — warm burnt orange, used for buttons, links, and highlights */
+    --terracotta: #C9683D;
+    /* Secondary accent color — warm gold, used for small premium touches like labels */
+    --golden-amber: #C98A2C;
+    /* Muted text color — soft warm gray, used for less important text like descriptions */
+    --warm-gray: #8C7F6E;
+    /* Border color — light tan, used for card outlines and dividers */
+    --border-tan: #E8DAC5;
+    /* Success color — used for "in stock" badges and success messages */
+    --sage-green: #3D7A4F;
+    /* Danger color — used for "low stock" badges and error messages */
+    --brick-red: #B23A34;
+    /* Font families used across the whole site */
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+
+/* Global reset so padding and borders don't affect element width */
+
+* {
+    box-sizing: border-box;
+}
+
+
+/* Background and base text color for the public landing page */
+
+.landing-body {
+    margin: 0;
+    background: var(--cream-white);
+    color: var(--coffee-brown);
+    font-family: var(--font-body);
+}
+
+
+/* Layout for the top navigation bar on the landing page */
+
+.landing-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 48px;
+}
+
+
+/* Site logo/brand text style in the landing page nav bar */
+
+.landing-brand {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--coffee-brown);
+    text-decoration: none;
+}
+
+
+/* Accent-colored part of the brand name (the dot after "Ujuzi") */
+
+.landing-brand span {
+    color: var(--terracotta);
+}
+
+
+/* Nav bar link styling (Login, Get Started) */
+
+.landing-nav-links a {
+    color: var(--warm-gray);
+    text-decoration: none;
+    margin-left: 24px;
+    font-size: 14px;
+}
+
+
+/* Outlined pill button style for the "Get Started" nav link */
+
+.landing-nav-links a.btn-outline {
+    border: 1px solid var(--terracotta);
+    color: var(--terracotta);
+    padding: 8px 18px;
+    border-radius: 999px;
+}
+
+
+/* Container for the decorative barcode bars in the hero section */
+
+.barcode {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 28px;
+    margin: 0 auto 20px;
+    justify-content: center;
+}
+
+
+/* Individual bar of the barcode graphic */
+
+.barcode span {
+    display: block;
+    width: 3px;
+    background: var(--terracotta);
+}
+
+
+/* Centered hero section layout and spacing */
+
+.hero {
+    text-align: center;
+    padding: 90px 24px 70px;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+
+/* Main hero heading text style */
+
+.hero h1 {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 600;
+    margin: 0 0 18px;
+    color: var(--coffee-brown);
+}
+
+
+/* Hero paragraph/subtext styling */
+
+.hero p {
+    color: var(--warm-gray);
+    font-size: 17px;
+    line-height: 1.7;
+}
+
+
+/* Layout for the two call-to-action buttons in the hero */
+
+.hero-ctas {
+    margin-top: 30px;
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+
+/* Solid accent-colored primary button (e.g. "Create an Account") */
+
+.btn-primary {
+    background: var(--terracotta);
+    color: var(--pure-white);
+    padding: 13px 28px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+
+/* Outlined secondary button (e.g. "Login") */
+
+.btn-secondary {
+    border: 1px solid var(--border-tan);
+    color: var(--coffee-brown);
+    padding: 13px 28px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+
+/* Shared spacing for each content section on the landing page, alternating background creates visual rhythm */
+
+.landing-section {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 70px 24px;
+    border-top: 1px solid var(--border-tan);
+}
+
+
+/* Section heading style within landing page sections */
+
+.landing-section h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--coffee-brown);
+    margin-bottom: 14px;
+}
+
+
+/* Muted intro paragraph text within landing page sections */
+
+.landing-section p.lead-muted {
+    color: var(--warm-gray);
+    max-width: 640px;
+    line-height: 1.7;
+}
+
+
+/* Responsive grid layout for the three feature cards */
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    margin-top: 30px;
+}
+
+
+/* Individual feature card background and border */
+
+.feature-card {
+    background: var(--pure-white);
+    border: 1px solid var(--border-tan);
+    border-radius: 14px;
+    padding: 26px;
+}
+
+
+/* Small monospace label (e.g. "01 / RECORDS") above each feature title */
+
+.feature-card .icon-mono {
+    font-family: var(--font-mono);
+    color: var(--golden-amber);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+}
+
+
+/* Feature card title text */
+
+.feature-card h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    margin: 10px 0 8px;
+    color: var(--coffee-brown);
+}
+
+
+/* Feature card description text */
+
+.feature-card p {
+    color: var(--warm-gray);
+    font-size: 14px;
+    margin: 0;
+}
+
+
+/* Placeholder image frame shown on the landing page until a real photo is added */
+
+.landing-image-frame {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 14px;
+    background: repeating-linear-gradient(135deg, var(--soft-sand), var(--soft-sand) 12px, var(--cream-white) 12px, var(--cream-white) 24px);
+    border: 1px solid var(--border-tan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--warm-gray);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: center;
+}
+
+
+/* Dark footer bar at the bottom of the landing page, gives grounding contrast against the light page */
+
+.landing-footer {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--charcoal-gray);
+    color: var(--soft-sand);
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+
+/* Background and base text color for the logged-in dashboard pages */
+
+.app-body {
+    margin: 0;
+    background: var(--cream-white);
+    color: var(--coffee-brown);
+    font-family: var(--font-body);
+}
+
+
+/* Top bar layout for the dashboard (logo + nav links) */
+
+.app-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 40px;
+    background: var(--pure-white);
+    border-bottom: 1px solid var(--border-tan);
+}
+
+
+/* Dashboard logo/brand text style */
+
+.app-brand {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 19px;
+    color: var(--coffee-brown);
+    text-decoration: none;
+}
+
+
+/* Small subtitle text under the dashboard brand name */
+
+.app-brand span {
+    color: var(--terracotta);
+    font-size: 13px;
+    display: block;
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+}
+
+
+/* Layout for dashboard nav links */
+
+.app-nav {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+
+
+/* Default (inactive) dashboard nav link color */
+
+.app-nav a {
+    color: var(--warm-gray);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+
+/* Highlighted style for the current page's nav link */
+
+.app-nav a.active {
+    color: var(--coffee-brown);
+    font-weight: 600;
+}
+
+
+/* Accent-colored pill button for "Register" in the dashboard nav */
+
+.app-nav .btn-chip {
+    background: var(--terracotta);
+    color: var(--pure-white);
+    padding: 8px 16px;
+    border-radius: 999px;
+}
+
+
+/* Makes a form display inline, e.g. so the logout button sits inline with nav links */
+
+.inline-form {
+    display: inline;
+}
+
+
+/* Text-only button style, used for things like the logout button */
+
+.link-btn {
+    background: none;
+    border: none;
+    color: var(--warm-gray);
+    font-size: 14px;
+    cursor: pointer;
+    font-family: var(--font-body);
+}
+
+
+/* Centered content width and padding for all dashboard pages */
+
+.app-main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+
+/* Footer text at the bottom of dashboard pages */
+
+.app-footer {
+    text-align: center;
+    color: var(--warm-gray);
+    font-size: 12px;
+    padding: 30px 20px;
+    font-family: var(--font-mono);
+}
+
+
+/* Main page title style used across dashboard pages (e.g. "Product Inventory") */
+
+.page-heading {
+    font-family: var(--font-display);
+    font-size: 30px;
+    margin: 0 0 26px;
+}
+
+
+/* White card container used for forms and content blocks */
+
+.card-panel {
+    background: var(--pure-white);
+    border: 1px solid var(--border-tan);
+    border-radius: 14px;
+    padding: 30px;
+}
+
+
+/* Centered narrow container for the login and register forms */
+
+.auth-wrap {
+    max-width: 400px;
+    margin: 30px auto;
+}
+
+
+/* Spacing between each form field */
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+
+/* Form field label text style */
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--coffee-brown);
+}
+
+
+/* Input, textarea, and select field styling across all forms */
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--border-tan);
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    background: var(--pure-white);
+}
+
+
+/* Allows textareas to be resized vertically only */
+
+.form-group textarea {
+    resize: vertical;
+}
+
+
+/* Two-column layout for form fields sitting side by side */
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+
+/* Solid dark button used for primary form submissions (e.g. "Save Product") */
+
+.btn-solid {
+    background: var(--coffee-brown);
+    color: var(--pure-white);
+    border: none;
+    padding: 12px 26px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+
+/* Outlined button used for secondary actions like "Cancel" */
+
+.btn-outline-dark {
+    border: 1px solid var(--border-tan);
+    color: var(--coffee-brown);
+    background: var(--pure-white);
+    padding: 11px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+
+/* Table styling for the product inventory list */
+
+.inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--pure-white);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border-tan);
+}
+
+
+/* Table header row styling */
+
+.inv-table th {
+    text-align: left;
+    background: var(--soft-sand);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--warm-gray);
+    padding: 12px 16px;
+}
+
+
+/* Table cell styling and row divider lines */
+
+.inv-table td {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border-tan);
+    font-size: 14px;
+}
+
+
+/* Monospace styling for numeric values like quantity and SKU */
+
+.qty-mono {
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+
+/* Red "Low Stock" status badge */
+
+.badge-low {
+    background: rgba(178, 58, 52, 0.1);
+    color: var(--brick-red);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+}
+
+
+/* Green "In Stock" status badge */
+
+.badge-ok {
+    background: rgba(61, 122, 79, 0.1);
+    color: var(--sage-green);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+}
+
+
+/* Small text-link actions in each table row (Stock In, Edit, Delete) */
+
+.row-actions a,
+.row-actions button {
+    font-size: 12.5px;
+    margin-right: 10px;
+    text-decoration: none;
+    color: var(--warm-gray);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+}
+
+
+/* Darkens row action links/buttons on hover */
+
+.row-actions a:hover,
+.row-actions button:hover {
+    color: var(--coffee-brown);
+}
+
+
+/* Green success message banner (e.g. after saving a product) */
+
+.alert-success {
+    background: rgba(61, 122, 79, 0.1);
+    color: var(--sage-green);
+    padding: 13px 18px;
+    border-radius: 8px;
+    margin-bottom: 22px;
+    font-size: 14px;
+}
+
+
+/* Red error message banner (e.g. form validation errors) */
+
+.alert-error {
+    background: rgba(178, 58, 52, 0.08);
+    color: var(--brick-red);
+    padding: 13px 18px;
+    border-radius: 8px;
+    margin-bottom: 22px;
+    font-size: 14px;
+}
+
+
+/* Removes default list spacing inside error message banners */
+
+.alert-error ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+
+/* Small square product thumbnail image/placeholder shown in the product table */
+
+.product-thumb {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--soft-sand);
+}
