@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Mail\WelcomeEmail; // 1. Added WelcomeEmail import
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail; // 2. Added Mail facade import
 
 class AuthController extends Controller
 {
@@ -49,6 +51,9 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        // 3. Trigger the welcome email distribution right after database insertion
+        Mail::to($user->email)->send(new WelcomeEmail($user));
 
         Auth::login($user);
 
