@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Ujuzi Shop Mall — Inventory')</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/dashboard-modern.css') }}" rel="stylesheet">
 </head>
-<body class="app-body">
+<body class="app-body @auth dashboard-modern @endauth">
 
 @auth
     <div class="app-shell">
@@ -87,19 +88,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
     const EXCHANGE_RATE_UGX_PER_USD = 3800;
-
     function formatCurrency(amountUgx, currency) {
-        if (currency === 'USD') {
-            return '$' + (amountUgx / EXCHANGE_RATE_UGX_PER_USD).toFixed(2);
-        }
+        if (currency === 'USD') return '$' + (amountUgx / EXCHANGE_RATE_UGX_PER_USD).toFixed(2);
         return 'UGX ' + Number(amountUgx).toLocaleString();
     }
-
     const currencySwitcher = document.getElementById('currencySwitcher');
     if (currencySwitcher) {
         currencySwitcher.addEventListener('change', function () {
             const currency = this.value;
-            document.querySelectorAll('.price-value').forEach(function (el) {
+            document.querySelectorAll('.price-value, .inventory-value').forEach(function (el) {
                 const raw = parseFloat(el.dataset.ugx);
                 el.textContent = formatCurrency(raw, currency);
             });
@@ -107,6 +104,5 @@
     }
 </script>
 @stack('scripts')
-
 </body>
 </html>

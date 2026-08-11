@@ -7,6 +7,7 @@ use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
 
 class ProductController extends Controller
 {
@@ -18,8 +19,61 @@ class ProductController extends Controller
         $totalStock = $products->sum('quantity');
         $stockInTotal = StockMovement::where('type', 'in')->sum('quantity');
         $stockOutTotal = StockMovement::where('type', 'out')->sum('quantity');
+        $inventoryValue = $products->sum(fn ($product) => $product->price * $product->quantity);
+        $lowStockProducts = $products->filter(fn ($product) => $product->isLowStock())->values();
+        $recentMovements = StockMovement::with(['product', 'user'])->latest()->limit(8)->get();
+        $topProducts = $products->sortByDesc('quantity')->take(5)->values();
 
-        return view('products.index', compact('products', 'totalProducts', 'totalStock', 'stockInTotal', 'stockOutTotal'));
+        return view('products.index', compact(
+            'products',
+            'totalProducts',
+            'totalStock',
+            'stockInTotal',
+            'stockOutTotal',
+            'inventoryValue',
+            'lowStockProducts',
+            'recentMovements',
+            'topProducts'
+        ));
+    }
+
+    /**
+     * JSON endpoint used by the dashboard for live stock movement charts.
+     * It deliberately reads the database on every request so stock-in/out
+     * changes are reflected without rebuilding the page.
+     */
+    public function analytics(Request $request)
+    {
+        $days = min(max((int) $request->integer('days', 14), 7), 90);
+        $start = Carbon::today()->subDays($days - 1);
+
+        $movements = StockMovement::where('created_at', '>=', $start)
+            ->selectRaw("DATE(created_at) as movement_date, type, SUM(quantity) as total")
+            ->groupBy('movement_date', 'type')
+            ->orderBy('movement_date')
+            ->get();
+
+        $labels = [];
+        $stockIn = [];
+        $stockOut = [];
+
+        for ($date = $start->copy(); $date->lte(Carbon::today()); $date->addDay()) {
+            $key = $date->toDateString();
+            $labels[] = $date->format('d M');
+            $stockIn[] = (int) ($movements->first(fn ($row) => $row->movement_date === $key && $row->type === 'in')->total ?? 0);
+            $stockOut[] = (int) ($movements->first(fn ($row) => $row->movement_date === $key && $row->type === 'out')->total ?? 0);
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'stock_in' => $stockIn,
+            'stock_out' => $stockOut,
+            'totals' => [
+                'stock_in' => (int) StockMovement::where('type', 'in')->sum('quantity'),
+                'stock_out' => (int) StockMovement::where('type', 'out')->sum('quantity'),
+                'current_stock' => (int) Product::sum('quantity'),
+            ],
+        ]);
     }
 
     public function create()
