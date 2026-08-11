@@ -11,13 +11,16 @@
         </div>
     </div>
 
-    <div class="sidebar-section-label">Menu</div>
+    <div class="sidebar-section-label">Workspace</div>
     <nav class="sidebar-nav">
         <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.index') ? 'active' : '' }}">
-            <i class="fa-solid fa-boxes-stacked"></i> Product Dashboard
+            <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
         <a href="{{ route('products.create') }}" class="{{ request()->routeIs('products.create') ? 'active' : '' }}">
             <i class="fa-solid fa-plus"></i> Add Product
+        </a>
+        <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
+            <i class="fa-solid fa-users"></i> Users
         </a>
     </nav>
 
