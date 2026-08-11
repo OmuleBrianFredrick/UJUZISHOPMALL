@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\OtpController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
 
@@ -12,6 +14,11 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+    Route::get('/login/otp', fn () => view('auth.login'))->name('login.otp');
+    Route::post('/login/otp/request', [OtpController::class, 'requestOtp'])->name('login.otp.request');
+    Route::post('/login/otp/verify', [OtpController::class, 'verify'])->name('login.otp.verify');
+    Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 });
@@ -26,7 +33,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-
     Route::get('/products/{product}/stock-in', [ProductController::class, 'stockIn'])->name('products.stockIn');
     Route::post('/products/{product}/stock-in', [ProductController::class, 'processStockIn'])->name('products.stockIn.submit');
     Route::get('/products/{product}/stock-out', [ProductController::class, 'stockOut'])->name('products.stockOut');
