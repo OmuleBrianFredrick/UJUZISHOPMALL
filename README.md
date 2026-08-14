@@ -31,7 +31,9 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - MTN Mobile Money and Airtel Money method selection
 - Provider-agnostic `PaymentGateway` contract
 - MTN MoMo collections adapter using environment configuration
-- Public MTN callback endpoint with idempotent state handling
+- Airtel Money gateway adapter with environment-backed credentials
+- MTN and Airtel callback endpoints
+- Provider-neutral callback normalization and payment/ledger settlement
 - Payment status screen and protected customer payment routes
 - Duplicate pending/processing payment protection
 
@@ -80,8 +82,8 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 5 | Seller / multi-vendor marketplace foundation | ✅ Implemented |
 | 6 | Seller product management + seller order views + schema reconciliation | 🟢 Implemented |
 | 7 | Seller financial ledger + commission settlement | 🟢 Implemented |
-| 8 | Airtel Money adapter + callback verification | 🔜 Next |
-| 9 | Seller payouts + payout ledger + admin approval | Planned |
+| 8 | Airtel Money adapter + callback verification | 🟢 Implemented |
+| 9 | Seller payouts + payout ledger + admin approval | 🔜 Next |
 | 10 | Admin commerce dashboard + financial analytics | Planned |
 | 11 | Notifications & delivery management | Planned |
 | 12 | Reviews, wishlist, promotions & loyalty | Planned |
@@ -89,7 +91,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 
 ## 💰 Seller financial architecture
 
-Seller money is now represented through a dedicated ledger rather than calculated from display totals.
+Seller money is represented through a dedicated ledger rather than calculated from display totals.
 
 **Verified Payment → Seller Sale Credit + Platform Commission Debit → Seller Available Balance → Future Payout**
 
@@ -101,26 +103,17 @@ PLATFORM_COMMISSION_RATE=10
 
 Each financial entry stores seller, order, payment, type, direction, amount, currency, unique reference, description and metadata. The ledger supports audit-friendly transaction history and prevents the application from silently rewriting historical earnings when product/order display values change.
 
-### Settlement rules
-
-- Settlement happens only after a payment is normalized as `successful`.
-- Seller earnings are calculated per seller-owned order item.
-- Commission is calculated per seller line item.
-- A successful payment cannot create duplicate sale/commission entries for the same seller/order/payment combination.
-- Seller available balance is credits minus debits.
-- Payouts are deliberately not yet deducted until the dedicated payout ledger is implemented.
-
 ## 💳 Payment architecture
 
-The payment domain is provider-aware without coupling checkout to one vendor. Each payment belongs to an order and stores provider, method, lifecycle status, merchant reference, provider reference, amount, currency, payer phone and normalized provider response.
+The payment domain is provider-aware without coupling checkout to one vendor. Each payment belongs to an order and stores provider, method, lifecycle status, merchant reference, provider reference, amount, currency, payer phone and normalized provider response. fileciteturn186file0
 
-The flow is designed as:
+The flow is:
 
 **Order → Payment Transaction → Provider Request → Processing → Callback/Status Verification → Successful/Failed → Financial Settlement → Order Fulfilment**
 
 ### MTN MoMo
 
-The repository contains an MTN Collections adapter with environment-backed configuration. Production credentials must never be committed.
+MTN remains configured through environment variables and the existing collections adapter. Its callback continues to feed the common settlement path. fileciteturn181file0
 
 ```env
 MTN_MOMO_BASE_URL=https://sandbox.momodeveloper.mtn.com
@@ -130,9 +123,23 @@ MTN_MOMO_API_KEY=
 MTN_MOMO_TARGET_ENVIRONMENT=sandbox
 ```
 
-### Airtel Money
+### Airtel Money — Phase 8
 
-Airtel remains behind the provider contract until its exact merchant API endpoints, credentials and callback requirements are configured. Checkout and financial settlement are already provider-isolated.
+Airtel Money now has a concrete gateway adapter, payment-manager registration, environment configuration and callback route. The adapter obtains its access token from configured credentials, submits the payment request, records the provider reference and normalizes provider responses into the same `successful / failed / processing` lifecycle used by MTN.
+
+Required configuration:
+
+```env
+AIRTEL_MONEY_BASE_URL=
+AIRTEL_MONEY_CLIENT_ID=
+AIRTEL_MONEY_CLIENT_SECRET=
+AIRTEL_MONEY_COUNTRY=UG
+AIRTEL_MONEY_CURRENCY=UGX
+```
+
+The exact production base URL and merchant credentials must be supplied from the Airtel Money merchant/API account before live transactions are enabled. The application deliberately fails closed when those values are absent.
+
+The payment manager now resolves both `mtn_momo` and `airtel_money` to dedicated gateway implementations. fileciteturn180file0
 
 ## 🏪 Marketplace architecture
 
@@ -170,19 +177,26 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 7 — Seller Financial Ledger & Commission Engine
+### Phase 8 — Airtel Money Provider Integration
 **Implemented:**
-- Added `financial_ledgers` migration.
-- Added `FinancialLedger` model and seller/order/payment relationships.
-- Added configurable `PLATFORM_COMMISSION_RATE`.
-- Added `CommissionService` for per-seller settlement.
-- Added sale credit and commission debit ledger entries.
-- Added duplicate-settlement protection.
-- Connected verified MTN payment success to financial settlement.
-- Added `BalanceService` for credits, debits and available balance.
-- Added seller finance route and earnings dashboard.
+- Added `AirtelMoneyGateway` implementing the existing provider contract.
+- Added Airtel client ID/secret/base URL configuration.
+- Registered `airtel_money` in `PaymentManager`.
+- Added Airtel payment initiation and provider-reference capture.
+- Added Airtel callback normalization.
+- Added `/payments/callback/airtel` endpoint.
+- Unified MTN/Airtel callback settlement through one provider-neutral payment path.
+- Added provider mismatch protection and idempotent terminal-state handling.
+- Reused the existing financial settlement engine after successful Airtel payment.
 
-**Important boundary:** seller payouts are not deducted from available balance yet. Payouts will receive their own workflow and ledger entries so money cannot disappear through an informal balance update.
+**Configuration boundary:** live Airtel credentials and the merchant-approved production API base URL are deployment secrets and are intentionally not stored in GitHub.
+
+### Phase 7 — Seller Financial Ledger & Commission Engine
+- Added financial ledger migration/model.
+- Added configurable platform commission.
+- Added seller sale credits and platform commission debits.
+- Added duplicate-settlement protection.
+- Added seller balance service and finance dashboard.
 
 ### Phase 6 — Seller Commerce Centre + Schema Integrity
 - Added seller product create/edit/delete operations.
@@ -219,6 +233,7 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Keep seller approval behind authenticated admin authorization.
 - Use HTTPS for production payment callbacks.
 - Treat the financial ledger as an audit trail; do not mutate historical entries to fake balances.
+- Keep provider credentials and production endpoints out of Git history.
 
 ## 📌 Development principle
 
