@@ -4,10 +4,13 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 
 ## 🚀 Current platform capabilities
 
-### Storefront
+### Customer storefront
 - Product catalogue, search, categories and sorting
 - Product detail and related-product pages
 - Responsive shopping experience
+- Customer accounts for order tracking and purchase history
+- Customer checkout identity captured with contact and delivery information
+- Customer accounts are **not forced through staff OTP**
 
 ### Shopping cart
 - Session-based cart
@@ -83,6 +86,21 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Configurable 7–365 day reporting window
 - Authenticated admin-only access boundary
 
+### Staff security — reconciled before Phase 11
+- Privileged staff password authentication followed by mandatory email OTP
+- OTP applies to `admin` and `inventory_manager` roles only
+- Customers are not forced through staff OTP
+- OTP is generated only after successful password verification
+- OTP is sent to the staff member's registered email address
+- OTP is hashed at rest
+- OTP expires after 5 minutes
+- Previous unconsumed OTP is invalidated when a new code is issued
+- Maximum 3 OTP requests per 10-minute window
+- OTP is single-use and consumed before the authenticated session is created
+- Google sign-in for privileged staff also enters the OTP challenge before access
+- Dedicated staff OTP verification screen
+- Pending staff login is held in the session until OTP verification succeeds
+
 ### Existing inventory foundation
 - Product management
 - SKU/category/description/price management
@@ -107,9 +125,30 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 8 | Airtel Money adapter + callback verification | 🟢 Implemented |
 | 9 | Seller payouts + payout ledger + admin approval | 🟢 Implemented |
 | 10 | Admin commerce dashboard + financial analytics | 🟢 Implemented |
-| 11 | Notifications & delivery management | 🔜 Next |
+| 10A | Staff email OTP security reconciliation | 🟢 Implemented |
+| 11 | Customer notifications + delivery management | 🔜 Next |
 | 12 | Reviews, wishlist, promotions & loyalty | Planned |
 | 13 | Production hardening, testing & deployment | Planned |
+
+## 🔐 Staff authentication architecture
+
+Ujuzi Shop Mall deliberately separates **customer authentication** from **privileged platform access**.
+
+### Customers
+
+Customers can create accounts when they need order tracking, purchase history or account-based checkout. They authenticate normally and are **not required to enter a staff OTP**.
+
+### Inventory managers and administrators
+
+These roles are considered privileged because they can operate the platform's inventory, products, seller, financial or administrative functions.
+
+Their login is:
+
+**Email + Password → Password Verified → Email OTP Sent → OTP Verified → Authenticated Staff Session**
+
+The OTP challenge is also enforced after Google authentication for these roles, so the Google login path cannot bypass the second factor.
+
+The OTP is never stored in plaintext. The database stores a hash, with an expiry timestamp, consumed timestamp and attempt/request controls.
 
 ## 💰 Seller financial architecture
 
@@ -129,18 +168,6 @@ The default minimum payout threshold is configurable with:
 MINIMUM_SELLER_PAYOUT=10000
 ```
 
-Each financial entry stores seller, order/payment context when applicable, type, direction, amount, currency, unique reference, description and metadata. The ledger supports audit-friendly transaction history and prevents the application from silently rewriting historical earnings when product/order display values change.
-
-### Payout lifecycle
-
-1. Seller submits a payout request.
-2. The system checks available balance after other pending/approved/processing reservations.
-3. Payout remains `pending` until administrator approval.
-4. Approval atomically reserves the requested amount with a debit ledger entry.
-5. The payout can be completed with a provider reference after the actual mobile-money disbursement.
-6. A failed approved/processing payout creates a compensating credit ledger entry and restores the seller's available balance.
-7. Payout records remain immutable in history rather than being deleted.
-
 ## 💳 Payment architecture
 
 The payment domain is provider-aware without coupling checkout to one vendor. Each payment belongs to an order and stores provider, method, lifecycle status, merchant reference, provider reference, amount, currency, payer phone and normalized provider response.
@@ -148,34 +175,6 @@ The payment domain is provider-aware without coupling checkout to one vendor. Ea
 The flow is:
 
 **Order → Payment Transaction → Provider Request → Processing → Callback/Status Verification → Successful/Failed → Financial Settlement → Order Fulfilment**
-
-### MTN MoMo
-
-MTN remains configured through environment variables and the existing collections adapter. Its callback continues to feed the common settlement path.
-
-```env
-MTN_MOMO_BASE_URL=https://sandbox.momodeveloper.mtn.com
-MTN_MOMO_SUBSCRIPTION_KEY=
-MTN_MOMO_API_USER=
-MTN_MOMO_API_KEY=
-MTN_MOMO_TARGET_ENVIRONMENT=sandbox
-```
-
-### Airtel Money — Phase 8
-
-Airtel Money now has a concrete gateway adapter, payment-manager registration, environment configuration and callback route. The adapter obtains its access token from configured credentials, submits the payment request, records the provider reference and normalizes provider responses into the same `successful / failed / processing` lifecycle used by MTN.
-
-Required configuration:
-
-```env
-AIRTEL_MONEY_BASE_URL=
-AIRTEL_MONEY_CLIENT_ID=
-AIRTEL_MONEY_CLIENT_SECRET=
-AIRTEL_MONEY_COUNTRY=UG
-AIRTEL_MONEY_CURRENCY=UGX
-```
-
-The exact production base URL and merchant credentials must be supplied from the Airtel Money merchant/API account before live transactions are enabled. The application deliberately fails closed when those values are absent.
 
 ## 🏪 Marketplace architecture
 
@@ -187,7 +186,7 @@ Seller operations are ownership-scoped: a seller cannot edit another seller's pr
 
 ## 🏗️ Overall architecture direction
 
-**Customer storefront → Cart → Checkout → Order → Payment → Fulfilment**
+**Customer storefront → Cart → Checkout → Order → Payment → Delivery → Customer Notification**
 
 **Seller → Store → Products → Inventory → Orders → Earnings → Payouts**
 
@@ -213,59 +212,51 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 10 — Admin Commerce Command Centre
+### Phase 10A — Staff Email OTP Security Reconciliation
 **Implemented:**
-- Added `AdminCommerceController` with admin-only access.
-- Added centralized sales, order, customer, product and seller KPIs.
-- Added paid-sales and platform-commission reporting.
-- Added seller-credit reporting from the financial ledger.
-- Added pending-payment and pending-seller operational monitoring.
-- Added low-stock inventory monitoring.
-- Added recent orders and payment-health tables.
-- Added daily paid-sales reporting over a configurable 7–365 day window.
-- Added `/admin/commerce` route and dashboard view.
-- Reconciled the route file after detecting that Phase 9 had added payout routes since the earlier route snapshot.
+- Audited the previous OTP implementation and found it was phone/SMS based rather than the intended staff email OTP flow.
+- Removed the OTP login dependency on a `phone` field that was not part of the current user model.
+- Added dedicated email-based OTP persistence with `user_id`, `email`, expiry, consumption and request-attempt tracking.
+- Added hashed OTP storage.
+- Added 5-minute OTP expiry and single-use consumption.
+- Added 3-code-per-10-minutes request throttling.
+- Changed password login so privileged staff are **not authenticated until OTP verification succeeds**.
+- Limited mandatory OTP to `admin` and `inventory_manager` roles.
+- Kept ordinary customer login free from staff OTP.
+- Added a dedicated staff OTP verification screen and resend flow.
+- Protected Google sign-in for privileged staff with the same email OTP challenge.
+- Reconciled routes without dropping the Phase 9 payout routes.
 
-**Design boundary:** this phase provides operational visibility without giving the dashboard permission to mutate financial records. Financial ledger entries remain the source of truth.
+**Security boundary:** the OTP is an access-control mechanism for privileged platform users, not a general customer notification feature.
+
+### Phase 10 — Admin Commerce Command Centre
+- Added centralized commerce KPIs and operational reporting.
+- Added sales, orders, customers, products, seller, payment and inventory monitoring.
+- Added daily paid-sales reporting and payment health breakdown.
 
 ### Phase 9 — Seller Payout Engine
 - Added payout records and seller payout workflow.
 - Added minimum payout threshold and balance reservation.
 - Added admin approval and failure reversal.
 - Added payout history and financial audit trail.
-- Kept automated provider disbursement behind real provider credentials/API contracts.
 
 ### Phase 8 — Airtel Money Provider Integration
-- Added `AirtelMoneyGateway` implementing the existing provider contract.
-- Added Airtel client ID/secret/base URL configuration.
-- Registered `airtel_money` in `PaymentManager`.
-- Added Airtel payment initiation and provider-reference capture.
-- Added Airtel callback normalization.
-- Added `/payments/callback/airtel` endpoint.
-- Unified MTN/Airtel callback settlement through one provider-neutral payment path.
+- Added Airtel Money gateway and callback integration.
+- Unified Airtel and MTN payment settlement paths.
 
 ### Phase 7 — Seller Financial Ledger & Commission Engine
 - Added financial ledger model and settlement engine.
-- Added configurable platform commission.
-- Added seller sale credits and platform commission debits.
-- Added duplicate-settlement protection.
-- Added seller balance service and finance dashboard.
+- Added configurable platform commission and seller balance calculations.
 
 ### Phase 6 — Seller Commerce Centre + Schema Integrity
-- Added seller product create/edit/delete operations.
-- Added strict seller ownership checks.
-- Added seller catalogue and order-management views.
-- Added seller order-status workflow.
-- Added missing marketplace schema migration and reconciled repository state.
+- Added seller product/order operations and ownership enforcement.
+- Reconciled marketplace schema state.
 
 ### Phase 5 — Multi-Vendor Marketplace Foundation
 - Added seller applications, profiles and approval workflow.
-- Added seller ownership and seller attribution to products/order items.
 
 ### Phase 4 — MTN MoMo Provider Adapter & Callback Foundation
-- Added MTN Collections adapter and environment-backed configuration.
-- Added RequestToPay initiation and provider reference storage.
-- Added callback processing and successful-payment order transition.
+- Added MTN Collections adapter and provider reference handling.
 
 ### Phase 3 — Payment Architecture & Mobile-Money Foundation
 - Added payments table/model, payment routes and provider gateway contract.
@@ -276,7 +267,7 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 ### Phase 1 — Storefront & Cart
 - Added product catalogue, search, product details and session shopping cart.
 
-## 🔐 Security principles
+## 🔒 Security principles
 
 - Keep secrets in `.env` and outside version control.
 - Validate all customer input server-side.
@@ -285,9 +276,11 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Enforce seller ownership on seller operations.
 - Keep seller approval behind authenticated admin authorization.
 - Use HTTPS for production payment callbacks.
-- Treat the financial ledger as an audit trail; do not mutate historical entries to fake balances.
+- Treat the financial ledger as an audit trail.
 - Keep provider credentials and production endpoints out of Git history.
-- Never mark a payout paid without recording the actual provider/reference evidence.
+- Never mark a payout paid without recording actual provider/reference evidence.
+- Require email OTP after password/Google authentication for privileged staff.
+- Never create an authenticated staff session before the OTP challenge succeeds.
 
 ## 📌 Development principle
 
