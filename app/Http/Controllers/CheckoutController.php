@@ -14,10 +14,8 @@ class CheckoutController extends Controller
     {
         $cart = collect($request->session()->get('cart', []));
         abort_if($cart->isEmpty(), 404, 'Your cart is empty.');
-
         $subtotal = $cart->sum(fn ($item) => $item['price'] * $item['quantity']);
         $deliveryFee = 0;
-
         return view('storefront.checkout', compact('cart', 'subtotal', 'deliveryFee'));
     }
 
@@ -46,20 +44,18 @@ class CheckoutController extends Controller
                         'cart' => "Insufficient stock for {$item['name']}. Please update your cart.",
                     ]);
                 }
-
                 $products[] = [$product, (int) $item['quantity']];
                 $subtotal += $product->price * $item['quantity'];
             }
 
-            $deliveryFee = 0;
             $order = Order::create([
                 'user_id' => $request->user()->id,
                 'order_number' => 'UJM-' . now()->format('YmdHis') . '-' . strtoupper(str()->random(5)),
-                'status' => 'pending',
+                'status' => 'confirmed',
                 'payment_status' => 'unpaid',
                 'subtotal' => $subtotal,
-                'delivery_fee' => $deliveryFee,
-                'total' => $subtotal + $deliveryFee,
+                'delivery_fee' => 0,
+                'total' => $subtotal,
                 ...$validated,
             ]);
 
@@ -73,13 +69,20 @@ class CheckoutController extends Controller
                     'unit_price' => $product->price,
                     'line_total' => $lineTotal,
                 ]);
+
+                $product->decrement('quantity', $quantity);
+                $product->stockMovements()->create([
+                    'user_id' => $request->user()->id,
+                    'type' => 'out',
+                    'quantity' => $quantity,
+                    'note' => 'Customer order ' . $order->order_number,
+                ]);
             }
 
             return $order;
         });
 
         $request->session()->forget('cart');
-
         return redirect()->route('orders.show', $order)->with('success', 'Order placed successfully.');
     }
 }
