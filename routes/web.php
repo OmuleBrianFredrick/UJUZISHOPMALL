@@ -6,6 +6,7 @@ use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\UserController;
@@ -32,10 +33,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/shop/cart', [StorefrontController::class, 'cart'])->name('storefront.cart');
     Route::post('/shop/cart', [StorefrontController::class, 'updateCart'])->name('storefront.cart.update');
     Route::delete('/shop/cart/{product}', [StorefrontController::class, 'removeFromCart'])->name('storefront.cart.remove');
+
     Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+    Route::get('/orders/{order}/pay', [PaymentController::class, 'create'])->name('payments.create');
+    Route::post('/orders/{order}/pay', [PaymentController::class, 'store'])->name('payments.store');
+    Route::get('/orders/{order}/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
 
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/analytics', [ProductController::class, 'analytics'])->name('products.analytics');
