@@ -35,12 +35,16 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Payment status screen and protected customer payment routes
 - Duplicate pending/processing payment protection
 
-### Marketplace — Phase 5 foundation
+### Marketplace — Phase 5/6
 - Customer-to-seller application flow
 - Seller profile/store records
 - Pending/approved/rejected seller lifecycle
 - Admin seller approval and rejection workflow
-- Seller-only dashboard scoped to seller-owned products
+- Seller dashboard scoped to seller-owned products
+- Seller product creation, editing and deletion
+- Seller-owned catalogue management
+- Seller-specific order list and order details
+- Seller order-status management
 - Product ownership via `seller_id`
 - Seller attribution retained on order items
 - Customer, seller and admin role field foundation
@@ -63,13 +67,14 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 2 | Checkout + orders + stock deduction | ✅ Implemented |
 | 3 | Payment architecture + mobile-money foundation | ✅ Implemented |
 | 4 | MTN MoMo adapter + callback foundation | 🟡 Foundation implemented |
-| 5 | Seller / multi-vendor marketplace foundation | 🟡 In progress |
-| 6 | Seller product management + seller order views | 🔜 Next |
-| 7 | Airtel Money adapter + callback verification | Planned |
-| 8 | Admin commerce dashboard + commissions | Planned |
-| 9 | Notifications & delivery management | Planned |
-| 10 | Reviews, wishlist, promotions & loyalty | Planned |
-| 11 | Production hardening, testing & deployment | Planned |
+| 5 | Seller / multi-vendor marketplace foundation | ✅ Implemented |
+| 6 | Seller product management + seller order views | 🟡 Implemented |
+| 7 | Airtel Money adapter + callback verification | 🔜 Next |
+| 8 | Seller commissions + earnings + payouts | Planned |
+| 9 | Admin commerce dashboard + financial analytics | Planned |
+| 10 | Notifications & delivery management | Planned |
+| 11 | Reviews, wishlist, promotions & loyalty | Planned |
+| 12 | Production hardening, testing & deployment | Planned |
 
 ## 💳 Payment architecture
 
@@ -105,9 +110,13 @@ The marketplace now has the core ownership model:
 
 **Customer → Order → Order Item → Product → Seller**
 
-A seller first submits a store application. An administrator approves or rejects the application. Only an approved seller is allowed into the seller dashboard. Product ownership is represented by `products.seller_id`, while `order_items.seller_id` preserves seller attribution at purchase time.
+A seller first submits a store application. An administrator approves or rejects the application. Approved sellers can manage their own catalogue and view/manage orders containing their products. Product ownership is represented by `products.seller_id`, while `order_items.seller_id` preserves seller attribution at purchase time.
 
-The current seller milestone deliberately stops before seller product CRUD, seller order management, commissions and payouts. Those are the next marketplace layer.
+Seller operations are ownership-scoped: a seller cannot edit another seller's products or manage an order that does not contain that seller's items.
+
+### Phase 6 boundary
+
+Commission accounting, seller earnings, payouts, seller analytics and split-order settlement are intentionally separate from this milestone. They require financial ledger design rather than simple totals and will be added next.
 
 ## 🏗️ Overall architecture direction
 
@@ -141,18 +150,27 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 5 — Multi-Vendor Marketplace Foundation
+### Phase 6 — Seller Commerce Centre
 **Implemented:**
+- Added seller-owned product management controller.
+- Added seller product create/edit/delete operations.
+- Added strict seller ownership checks on product operations.
+- Added seller product catalogue UI.
+- Added seller order list and order-detail UI.
+- Added seller-specific order filtering through `order_items.seller_id`.
+- Added seller order-status updates for processing, ready, shipped and delivered.
+- Added seller routes for catalogue and order management.
+
+**Financial boundary:** commissions, seller earnings and payouts are not calculated from display totals. They will receive a dedicated ledger in the next financial milestone.
+
+### Phase 5 — Multi-Vendor Marketplace Foundation
 - Added marketplace role field foundation to users.
-- Added `seller_profiles` table with store identity and approval state.
+- Added seller profiles and approval state.
 - Added seller application flow.
 - Added seller approval/rejection workflow for administrators.
-- Added seller dashboard scoped to the authenticated seller's products.
+- Added seller dashboard scoped to seller-owned products.
 - Added `seller_id` ownership to products.
-- Added `seller_id` attribution to order items so seller ownership survives checkout.
-- Added seller-facing application and dashboard UI.
-
-**Boundary:** seller product CRUD, seller order views, commissions, payouts and seller analytics are intentionally separate next milestones. This prevents the first seller migration from coupling all marketplace concerns into one change.
+- Added `seller_id` attribution to order items.
 
 ### Phase 4 — MTN MoMo Provider Adapter & Callback Foundation
 - Added MTN Collections adapter and environment-backed configuration.
