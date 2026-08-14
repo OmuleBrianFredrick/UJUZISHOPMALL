@@ -25,6 +25,19 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Seller delivery transitions are sequentially enforced
 - Seller notifications use the centralized notification service
 
+### Customer engagement — Phase 12 (in progress)
+- Customer wishlist with duplicate protection
+- Verified-purchase product reviews
+- 1–5 star product ratings
+- Review moderation status and approval timestamp
+- Product average-rating relationship helpers
+- Promotion/coupon schema with percentage or fixed discounts
+- Promotion validity rules: active window, minimum order and usage limit
+- Promotion validation endpoint
+- Purchase-based loyalty ledger
+- Idempotent loyalty points awarded when an order is delivered
+- Customer loyalty balance and transaction history
+
 ### Shopping cart
 - Session-based cart
 - Add/remove products and quantity updates
@@ -130,7 +143,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 10 | Admin commerce dashboard + financial analytics | 🟢 Implemented |
 | 10A | Staff email OTP security reconciliation | 🟢 Implemented |
 | 11 | Customer notifications + delivery management | 🟢 Implemented |
-| 12 | Reviews, wishlist, promotions & loyalty | Planned |
+| 12 | Reviews, wishlist, promotions & loyalty | 🟡 In progress |
 | 13 | Production hardening, testing & deployment | Planned |
 
 ## 🔐 Staff authentication architecture
@@ -149,9 +162,31 @@ Their login is:
 
 **Email + Password → Password Verified → Email OTP Sent → OTP Verified → Authenticated Staff Session**
 
-The OTP challenge is also enforced after Google authentication for these roles, so the Google login path cannot bypass the second factor.
+## ⭐ Reviews
 
-The OTP is never stored in plaintext. The database stores a hash, with an expiry timestamp, consumed timestamp and request controls.
+Reviews are tied to a real delivered order containing the reviewed product. This prevents unverified customers from manufacturing reviews. A customer can submit one review per product purchase/order, with a 1–5 rating and optional written feedback.
+
+## ❤️ Wishlist
+
+Wishlist entries belong to the authenticated customer and are uniquely constrained by customer + product. This prevents duplicate wishlist records and keeps each customer's saved products private.
+
+## 🎟️ Promotions
+
+Promotion codes support:
+- Percentage discounts
+- Fixed discounts
+- Minimum order amounts
+- Start/end dates
+- Usage limits
+- Active/inactive state
+
+The validation layer refuses expired, inactive, exhausted or below-minimum promotions and caps discounts at the order subtotal.
+
+## 🏆 Loyalty
+
+Completed orders can award loyalty points through an immutable transaction ledger. The current base rule is **1 point per UGX 1,000 of delivered-order value**. Awarding is idempotent: the same order cannot generate purchase points twice.
+
+The balance is calculated from the ledger rather than stored as a mutable customer total.
 
 ## 📦 Checkout and customer identity
 
@@ -163,23 +198,11 @@ A customer account is used to keep cart/order ownership and purchase history sep
 - Delivery address
 - Optional delivery notes
 
-The customer's email is persisted directly on the order so delivery notifications remain tied to the contact information supplied for that purchase.
-
 ## 🔔 Notification architecture
 
 **Order Event → NotificationLog → Queued Mailable → Email Provider → Customer**
 
-Transactional notifications cover:
-
-- Order confirmation
-- Payment success
-- Payment failure
-- Processing
-- Ready for dispatch
-- Shipped
-- Delivered
-
-The notification layer is event-driven and transactional rather than a general marketing-mail system. A notification failure must never undo a successful order or payment transaction.
+Transactional notifications cover order, payment and fulfilment events.
 
 ## 📦 Delivery tracking
 
@@ -187,53 +210,11 @@ The customer order page displays:
 
 **Confirmed → Processing → Ready → Shipped → Delivered**
 
-Seller status transitions are sequentially enforced:
-
-**Pending → Processing → Ready → Shipped → Delivered**
-
-A seller cannot skip directly from pending to shipped or delivered, and a delivered order cannot be moved backwards through the workflow. Seller access remains ownership-scoped to orders containing that seller's products. Customer order pages remain protected by `user_id`.
-
 ## 💰 Seller financial architecture
 
 Seller money is represented through a dedicated ledger rather than calculated from display totals.
 
 **Verified Payment → Seller Sale Credit + Platform Commission Debit → Seller Available Balance → Payout Request → Admin Approval → Payout Reservation → Provider Settlement**
-
-The default commission rate is configurable with:
-
-```env
-PLATFORM_COMMISSION_RATE=10
-```
-
-The default minimum payout threshold is configurable with:
-
-```env
-MINIMUM_SELLER_PAYOUT=10000
-```
-
-## 💳 Payment architecture
-
-The payment domain is provider-aware without coupling checkout to one vendor. Each payment belongs to an order and stores provider, method, lifecycle status, merchant reference, provider reference, amount, currency, payer phone and normalized provider response.
-
-The flow is:
-
-**Order → Payment Transaction → Provider Request → Processing → Callback/Status Verification → Successful/Failed → Financial Settlement → Order Fulfilment → Notification**
-
-## 🏪 Marketplace architecture
-
-**Customer → Order → Order Item → Product → Seller**
-
-A seller submits a store application. An administrator approves or rejects it. Approved sellers can manage their own catalogue and orders containing their products.
-
-Seller operations are ownership-scoped: a seller cannot edit another seller's products or manage an unrelated order.
-
-## 🏗️ Overall architecture direction
-
-**Customer storefront → Cart → Checkout → Order → Payment → Delivery → Customer Notification**
-
-**Seller → Store → Products → Inventory → Orders → Earnings → Payouts**
-
-**Admin → Users → Seller approval → Products → Orders → Payments → Commissions → Payouts → Analytics**
 
 ## 🛠️ Development notes
 
@@ -250,24 +231,30 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 11 — Customer Notifications & Delivery Management — COMPLETE
-**Implemented:**
-- Added customer order confirmation email.
-- Added payment success/failure notifications from provider callbacks.
-- Added queued order-status notifications.
-- Added notification audit logging.
-- Added notification failure capture.
-- Added customer delivery timeline.
-- Added responsive delivery timeline styling.
-- Centralized notification dispatch through `NotificationService`.
-- Reconciled the seller order controller after the earlier SHA conflict.
-- Removed direct mail dispatch from the seller order controller.
-- Enforced sequential seller delivery status transitions.
-- Prevented invalid status jumps and backward movement after delivery.
-- Preserved seller ownership authorization.
-- Preserved customer order ownership authorization.
+### Phase 12 — Reviews, Wishlist, Promotions & Loyalty — IN PROGRESS
+**Implemented so far:**
+- Added wishlist database schema, model and customer controller/view.
+- Added verified-purchase review schema, model and submission workflow.
+- Added product review relationships and average-rating helper.
+- Added promotion schema supporting fixed/percentage discounts, dates, limits and minimum order.
+- Added promotion validation endpoint.
+- Added loyalty transaction ledger and balance service.
+- Added idempotent loyalty points for delivered orders.
+- Added customer loyalty history page.
+- Added routes for all Phase 12 customer capabilities.
 
-**Completion boundary:** transactional notifications are active for order, payment and fulfilment events. Non-essential marketing notifications/preferences remain outside this phase by design.
+**Next Phase 12 integration work:**
+- Connect wishlist controls directly into product/storefront views.
+- Connect review display and submission into product detail/order history views.
+- Apply promotion codes atomically during checkout and record usage.
+- Add admin promotion management.
+- Add loyalty redemption rules and checkout redemption.
+- Add automated tests for discount, review, wishlist and loyalty invariants.
+
+### Phase 11 — Customer Notifications & Delivery Management — COMPLETE
+- Added customer order confirmation, payment and fulfilment notifications.
+- Added queued notification handling and audit logging.
+- Added customer delivery timeline and sequential seller delivery transitions.
 
 ### Phase 10A — Staff Email OTP Security Reconciliation
 - Reconciled privileged staff email OTP authentication.
@@ -277,32 +264,8 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 ### Phase 10 — Admin Commerce Command Centre
 - Added centralized commerce KPIs and operational reporting.
 
-### Phase 9 — Seller Payout Engine
-- Added payout records, reservations, admin approval and failure reversal.
-
-### Phase 8 — Airtel Money Provider Integration
-- Added Airtel Money gateway and callback integration.
-
-### Phase 7 — Seller Financial Ledger & Commission Engine
-- Added financial ledger and commission settlement.
-
-### Phase 6 — Seller Commerce Centre + Schema Integrity
-- Added seller product/order operations and ownership enforcement.
-
-### Phase 5 — Multi-Vendor Marketplace Foundation
-- Added seller applications, profiles and approval workflow.
-
-### Phase 4 — MTN MoMo Provider Adapter & Callback Foundation
-- Added MTN Collections adapter and provider reference handling.
-
-### Phase 3 — Payment Architecture & Mobile-Money Foundation
-- Added payments table/model, payment routes and provider gateway contract.
-
-### Phase 2 — Checkout & Orders
-- Added transactional checkout, orders, order items and stock deduction.
-
-### Phase 1 — Storefront & Cart
-- Added product catalogue, search, product details and session shopping cart.
+### Phases 1–9
+- Storefront, checkout, payments, marketplace, seller finance, Airtel/MTN integration and payouts implemented as documented above.
 
 ## 🔒 Security principles
 
@@ -312,12 +275,9 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Make callback processing and financial settlement idempotent.
 - Enforce seller ownership on seller operations.
 - Keep seller approval behind authenticated admin authorization.
-- Use HTTPS for production payment callbacks.
-- Treat the financial ledger as an audit trail.
-- Keep provider credentials and production endpoints out of Git history.
-- Never mark a payout paid without recording actual provider/reference evidence.
-- Require email OTP after password/Google authentication for privileged staff.
-- Never create an authenticated staff session before the OTP challenge succeeds.
+- Treat the financial and loyalty ledgers as audit trails.
+- Never trust client-side discount calculations; recompute promotions server-side.
+- Only permit verified purchasers to review delivered products.
 
 ## 📌 Development principle
 
