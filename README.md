@@ -48,6 +48,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Product ownership via `seller_id`
 - Seller attribution retained on order items
 - Customer, seller and admin role field foundation
+- Marketplace schema migration now explicitly creates seller profiles and seller ownership columns
 
 ### Existing inventory foundation
 - Product management
@@ -68,7 +69,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 3 | Payment architecture + mobile-money foundation | ✅ Implemented |
 | 4 | MTN MoMo adapter + callback foundation | 🟡 Foundation implemented |
 | 5 | Seller / multi-vendor marketplace foundation | ✅ Implemented |
-| 6 | Seller product management + seller order views | 🟡 Implemented |
+| 6 | Seller product management + seller order views | 🟢 Implemented |
 | 7 | Airtel Money adapter + callback verification | 🔜 Next |
 | 8 | Seller commissions + earnings + payouts | Planned |
 | 9 | Admin commerce dashboard + financial analytics | Planned |
@@ -86,7 +87,7 @@ The live flow is designed as:
 
 ### MTN MoMo
 
-The repository contains an MTN Collections adapter. Its default sandbox base URL, subscription key, API user and API key are supplied through environment configuration. MTN documents RequestToPay as asynchronous: a successful request returns `202 Accepted`, the transaction is processed asynchronously, and the final result is delivered through a callback; MTN also recommends status polling as a fallback because callbacks may not be retried. citeturn0search0turn0search1
+The repository contains an MTN Collections adapter. Its default sandbox base URL, subscription key, API user and API key are supplied through environment configuration. MTN documents RequestToPay as asynchronous: a successful request returns `202 Accepted`, the transaction is processed asynchronously, and the final result is delivered through a callback; MTN also recommends status polling as a fallback because callbacks may not be retried.
 
 Required environment variables:
 
@@ -98,7 +99,7 @@ MTN_MOMO_API_KEY=
 MTN_MOMO_TARGET_ENVIRONMENT=sandbox
 ```
 
-Do not put real credentials into GitHub. MTN's developer portal requires product subscription and provisioned API credentials before API use. citeturn0search8turn0search10
+Do not put real credentials into GitHub.
 
 ### Airtel Money
 
@@ -113,6 +114,10 @@ The marketplace now has the core ownership model:
 A seller first submits a store application. An administrator approves or rejects the application. Approved sellers can manage their own catalogue and view/manage orders containing their products. Product ownership is represented by `products.seller_id`, while `order_items.seller_id` preserves seller attribution at purchase time.
 
 Seller operations are ownership-scoped: a seller cannot edit another seller's products or manage an order that does not contain that seller's items.
+
+### Schema integrity checkpoint
+
+A dedicated marketplace migration, `2026_08_14_100001_add_marketplace_seller_structure.php`, now closes the schema gap between the seller code and database layer. It creates `seller_profiles` when absent and safely adds nullable `seller_id` foreign keys to `products` and `order_items` when those columns are missing. This is intentionally idempotent at the schema-column level so existing installations can migrate forward without manually editing older migrations.
 
 ### Phase 6 boundary
 
@@ -150,7 +155,7 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 6 — Seller Commerce Centre
+### Phase 6 — Seller Commerce Centre + Schema Integrity
 **Implemented:**
 - Added seller-owned product management controller.
 - Added seller product create/edit/delete operations.
@@ -160,6 +165,9 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Added seller-specific order filtering through `order_items.seller_id`.
 - Added seller order-status updates for processing, ready, shipped and delivered.
 - Added seller routes for catalogue and order management.
+- Reconciled the seller product view against the live repository instead of blindly overwriting it.
+- Added the missing marketplace schema migration for seller profiles and seller ownership foreign keys.
+- Completed the `Product` ownership relationships and casts.
 
 **Financial boundary:** commissions, seller earnings and payouts are not calculated from display totals. They will receive a dedicated ledger in the next financial milestone.
 
@@ -218,6 +226,7 @@ Every significant platform upgrade should include:
 3. A GitHub development/comment log.
 4. An update to this README.
 5. A review before the next major module begins.
+6. A reconciliation pass so no failed/partial repository write is left hanging.
 
 ## License
 
