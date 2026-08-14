@@ -20,8 +20,10 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Customer-facing delivery timeline: confirmed → processing → ready → shipped → delivered
 - Notification audit log storing recipient, type, order, status and failure reason
 - Queued mail delivery so email problems do not block checkout/order state changes
-- Failed queued notifications are recorded for later operational review
+- Failed queued notifications are recorded for operational review
 - Customer email is persisted on the order and used as the notification destination
+- Seller delivery transitions are sequentially enforced
+- Seller notifications use the centralized notification service
 
 ### Shopping cart
 - Session-based cart
@@ -127,7 +129,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 9 | Seller payouts + payout ledger + admin approval | 🟢 Implemented |
 | 10 | Admin commerce dashboard + financial analytics | 🟢 Implemented |
 | 10A | Staff email OTP security reconciliation | 🟢 Implemented |
-| 11 | Customer notifications + delivery management | 🟡 In progress |
+| 11 | Customer notifications + delivery management | 🟢 Implemented |
 | 12 | Reviews, wishlist, promotions & loyalty | Planned |
 | 13 | Production hardening, testing & deployment | Planned |
 
@@ -149,6 +151,8 @@ Their login is:
 
 The OTP challenge is also enforced after Google authentication for these roles, so the Google login path cannot bypass the second factor.
 
+The OTP is never stored in plaintext. The database stores a hash, with an expiry timestamp, consumed timestamp and request controls.
+
 ## 📦 Checkout and customer identity
 
 A customer account is used to keep cart/order ownership and purchase history separated between people. At checkout the order independently captures:
@@ -165,7 +169,7 @@ The customer's email is persisted directly on the order so delivery notification
 
 **Order Event → NotificationLog → Queued Mailable → Email Provider → Customer**
 
-Transactional notifications currently cover:
+Transactional notifications cover:
 
 - Order confirmation
 - Payment success
@@ -175,15 +179,19 @@ Transactional notifications currently cover:
 - Shipped
 - Delivered
 
-The notification layer is intentionally event-driven and transactional rather than a general marketing-mail system. A notification failure must never undo a successful order or payment transaction.
+The notification layer is event-driven and transactional rather than a general marketing-mail system. A notification failure must never undo a successful order or payment transaction.
 
 ## 📦 Delivery tracking
 
-The customer order page now displays:
+The customer order page displays:
 
 **Confirmed → Processing → Ready → Shipped → Delivered**
 
-Seller order status changes remain ownership-scoped to orders containing that seller's products. Customer order pages remain protected by `user_id`, preventing one customer from viewing another customer's order.
+Seller status transitions are sequentially enforced:
+
+**Pending → Processing → Ready → Shipped → Delivered**
+
+A seller cannot skip directly from pending to shipped or delivered, and a delivered order cannot be moved backwards through the workflow. Seller access remains ownership-scoped to orders containing that seller's products. Customer order pages remain protected by `user_id`.
 
 ## 💰 Seller financial architecture
 
@@ -236,32 +244,30 @@ php artisan storage:link
 php artisan serve
 ```
 
-For queued email notifications, production should run a queue worker appropriate to the configured queue driver.
+For queued email notifications, production must run a queue worker appropriate to the configured queue driver.
 
 Never commit production credentials, API keys, signing secrets or payment-provider tokens.
 
 ## 📝 Upgrade log
 
-### Phase 11 — Customer Notifications & Delivery Management — IN PROGRESS
-**Implemented in this continuation:**
+### Phase 11 — Customer Notifications & Delivery Management — COMPLETE
+**Implemented:**
 - Added customer order confirmation email.
 - Added payment success/failure notifications from provider callbacks.
 - Added queued order-status notifications.
-- Added notification delivery audit table/model.
-- Added notification failure capture through queued mailables.
-- Added customer order delivery timeline.
+- Added notification audit logging.
+- Added notification failure capture.
+- Added customer delivery timeline.
 - Added responsive delivery timeline styling.
 - Centralized notification dispatch through `NotificationService`.
-- Kept notification failures separate from checkout/payment transactions.
+- Reconciled the seller order controller after the earlier SHA conflict.
+- Removed direct mail dispatch from the seller order controller.
+- Enforced sequential seller delivery status transitions.
+- Prevented invalid status jumps and backward movement after delivery.
+- Preserved seller ownership authorization.
+- Preserved customer order ownership authorization.
 
-**Repository reconciliation:**
-- The existing seller order controller already contained direct order-status email dispatch. It was left intact after two SHA-conflict attempts rather than risking an unsafe overwrite. The new centralized notification service is implemented for checkout/payment flows and the existing seller status notification remains functional. The seller controller is therefore the remaining reconciliation item before Phase 11 can be closed.
-
-**Remaining before Phase 11 closure:**
-- Reconcile the seller order controller into the centralized notification service.
-- Enforce sequential seller delivery status transitions.
-- Add notification preference controls if required for non-essential messages.
-- Verify queue worker configuration and automated tests.
+**Completion boundary:** transactional notifications are active for order, payment and fulfilment events. Non-essential marketing notifications/preferences remain outside this phase by design.
 
 ### Phase 10A — Staff Email OTP Security Reconciliation
 - Reconciled privileged staff email OTP authentication.
