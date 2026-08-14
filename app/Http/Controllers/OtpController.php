@@ -2,104 +2,92 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\StaffLoginOtp;
 use App\Models\Otp;
 use App\Models\User;
-use App\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OtpController extends Controller
 {
-    public function requestOtp(Request $request, OtpService $otpService)
+    public function challenge(Request $request)
     {
-        $validated = $request->validate([
-            'phone' => ['required', 'string', 'max:30'],
-        ]);
+        abort_unless($request->session()->has('pending_staff_login_user_id'), 403);
 
-        $phone = $this->normalizeUgandaPhone($validated['phone']);
-        $user = User::where('phone', $phone)->first();
+        return view('auth.staff-otp');
+    }
 
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'phone' => 'No account is registered with this phone number.',
-            ]);
+    public function requestOtp(Request $request)
+    {
+        $userId = $request->session()->get('pending_staff_login_user_id');
+        $user = $userId ? User::find($userId) : null;
+
+        if (!$user || !$this->isPrivilegedStaff($user)) {
+            $request->session()->forget(['pending_staff_login_user_id', 'pending_staff_login_remember']);
+            throw ValidationException::withMessages(['email' => 'The staff login session is no longer valid. Please sign in again.']);
         }
 
-        $recentCount = Otp::where('phone', $phone)
-            ->where('purpose', 'login')
+        $recentCount = Otp::where('user_id', $user->id)
+            ->where('purpose', 'staff_login')
             ->where('created_at', '>=', now()->subMinutes(10))
             ->count();
 
         if ($recentCount >= 3) {
-            throw ValidationException::withMessages([
-                'phone' => 'Too many OTP requests. Please wait a few minutes before trying again.',
-            ]);
+            throw ValidationException::withMessages(['code' => 'Too many verification codes were requested. Please wait a few minutes.']);
         }
 
-        $code = (string) random_int(100000, 999999);
-
-        Otp::where('phone', $phone)
-            ->where('purpose', 'login')
-            ->whereNull('consumed_at')
-            ->update(['consumed_at' => now()]);
-
-        Otp::create([
-            'phone' => $phone,
-            'code' => Hash::make($code),
-            'purpose' => 'login',
-            'expires_at' => now()->addMinutes(5),
-        ]);
-
-        $otpService->send($phone, $code);
-
-        return back()->with('otp_sent', 'A verification code has been sent to your phone.');
+        return $this->issueOtp($request, $user);
     }
 
     public function verify(Request $request)
     {
-        $validated = $request->validate([
-            'phone' => ['required', 'string', 'max:30'],
-            'code' => ['required', 'digits:6'],
-        ]);
+        $request->validate(['code' => ['required', 'digits:6']]);
 
-        $phone = $this->normalizeUgandaPhone($validated['phone']);
-        $otp = Otp::where('phone', $phone)
-            ->where('purpose', 'login')
-            ->whereNull('consumed_at')
-            ->latest()
-            ->first();
+        $userId = $request->session()->get('pending_staff_login_user_id');
+        $user = $userId ? User::find($userId) : null;
+        $otp = $user ? Otp::where('user_id', $user->id)->where('purpose', 'staff_login')->whereNull('consumed_at')->latest()->first() : null;
 
-        if (!$otp || $otp->expires_at->isPast() || !Hash::check($validated['code'], $otp->code)) {
-            throw ValidationException::withMessages([
-                'code' => 'The verification code is invalid or has expired.',
-            ]);
+        if (!$user || !$this->isPrivilegedStaff($user) || !$otp || $otp->expires_at->isPast() || !Hash::check($request->string('code')->toString(), $otp->code)) {
+            throw ValidationException::withMessages(['code' => 'The verification code is invalid or has expired.']);
         }
 
-        $user = User::where('phone', $phone)->firstOrFail();
         $otp->update(['consumed_at' => now()]);
+        $remember = $request->session()->pull('pending_staff_login_remember', false);
+        $request->session()->forget('pending_staff_login_user_id');
 
-        auth()->login($user);
+        auth()->login($user, (bool) $remember);
         $request->session()->regenerate();
 
         return redirect()->intended(route('products.index'));
     }
 
-    private function normalizeUgandaPhone(string $phone): string
+    private function issueOtp(Request $request, User $user)
     {
-        $phone = preg_replace('/[^0-9+]/', '', trim($phone));
+        $code = (string) random_int(100000, 999999);
 
-        if (Str::startsWith($phone, '00')) {
-            $phone = '+' . substr($phone, 2);
-        }
-        if (Str::startsWith($phone, '0')) {
-            $phone = '+256' . substr($phone, 1);
-        }
-        if (Str::startsWith($phone, '256')) {
-            $phone = '+' . $phone;
-        }
+        Otp::where('user_id', $user->id)
+            ->where('purpose', 'staff_login')
+            ->whereNull('consumed_at')
+            ->update(['consumed_at' => now()]);
 
-        return $phone;
+        Otp::create([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'code' => Hash::make($code),
+            'purpose' => 'staff_login',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        Mail::to($user->email)->send(new StaffLoginOtp($code, $user->name));
+
+        return back()->with('otp_sent', 'A verification code has been sent to your registered email address.');
+    }
+
+    private function isPrivilegedStaff(User $user): bool
+    {
+        return in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager'], true);
     }
 }
