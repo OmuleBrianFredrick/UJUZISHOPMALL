@@ -16,7 +16,6 @@ class OtpController extends Controller
     public function challenge(Request $request)
     {
         abort_unless($request->session()->has('pending_staff_login_user_id'), 403);
-
         return view('auth.staff-otp');
     }
 
@@ -30,11 +29,7 @@ class OtpController extends Controller
             throw ValidationException::withMessages(['email' => 'The staff login session is no longer valid. Please sign in again.']);
         }
 
-        $recentCount = Otp::where('user_id', $user->id)
-            ->where('purpose', 'staff_login')
-            ->where('created_at', '>=', now()->subMinutes(10))
-            ->count();
-
+        $recentCount = Otp::where('user_id', $user->id)->where('purpose', 'staff_login')->where('created_at', '>=', now()->subMinutes(10))->count();
         if ($recentCount >= 3) {
             throw ValidationException::withMessages(['code' => 'Too many verification codes were requested. Please wait a few minutes.']);
         }
@@ -45,7 +40,6 @@ class OtpController extends Controller
     public function verify(Request $request)
     {
         $request->validate(['code' => ['required', 'digits:6']]);
-
         $userId = $request->session()->get('pending_staff_login_user_id');
         $user = $userId ? User::find($userId) : null;
         $otp = $user ? Otp::where('user_id', $user->id)->where('purpose', 'staff_login')->whereNull('consumed_at')->latest()->first() : null;
@@ -57,7 +51,6 @@ class OtpController extends Controller
         $otp->update(['consumed_at' => now()]);
         $remember = $request->session()->pull('pending_staff_login_remember', false);
         $request->session()->forget('pending_staff_login_user_id');
-
         auth()->login($user, (bool) $remember);
         $request->session()->regenerate();
 
@@ -67,12 +60,7 @@ class OtpController extends Controller
     private function issueOtp(Request $request, User $user)
     {
         $code = (string) random_int(100000, 999999);
-
-        Otp::where('user_id', $user->id)
-            ->where('purpose', 'staff_login')
-            ->whereNull('consumed_at')
-            ->update(['consumed_at' => now()]);
-
+        Otp::where('user_id', $user->id)->where('purpose', 'staff_login')->whereNull('consumed_at')->update(['consumed_at' => now()]);
         Otp::create([
             'user_id' => $user->id,
             'email' => $user->email,
@@ -80,10 +68,8 @@ class OtpController extends Controller
             'purpose' => 'staff_login',
             'expires_at' => now()->addMinutes(5),
         ]);
-
         Mail::to($user->email)->send(new StaffLoginOtp($code, $user->name));
-
-        return back()->with('otp_sent', 'A verification code has been sent to your registered email address.');
+        return redirect()->route('login.otp.challenge')->with('otp_sent', 'A verification code has been sent to your registered email address.');
     }
 
     private function isPrivilegedStaff(User $user): bool
