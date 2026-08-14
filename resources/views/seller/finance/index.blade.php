@@ -1,0 +1,7 @@
+@extends('layouts.dashboard')
+@section('title','Seller Finance')
+@section('content')
+<div class="dashboard-hero"><div><div class="dashboard-kicker">Seller Finance</div><h1 class="dashboard-title">Earnings & Ledger</h1><p class="dashboard-subtitle">Auditable marketplace earnings after verified customer payments.</p></div></div>
+<section class="dashboard-grid"><div class="dashboard-panel"><span>Total credits</span><h2>UGX {{ number_format($summary['credits'],0) }}</h2></div><div class="dashboard-panel"><span>Total debits</span><h2>UGX {{ number_format($summary['debits'],0) }}</h2></div><div class="dashboard-panel"><span>Available balance</span><h2>UGX {{ number_format($summary['available'],0) }}</h2></div></section>
+<section class="dashboard-panel"><h3>Ledger entries</h3><div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>Direction</th><th>Amount</th><th>Reference</th><th>Description</th></tr></thead><tbody>@forelse($entries as $entry)<tr><td>{{ $entry->created_at->format('d M Y H:i') }}</td><td>{{ ucfirst($entry->type) }}</td><td>{{ ucfirst($entry->direction) }}</td><td>UGX {{ number_format($entry->amount,0) }}</td><td>{{ $entry->reference }}</td><td>{{ $entry->description }}</td></tr>@empty<tr><td colspan="6">No financial entries yet. They appear after a verified paid order.</td></tr>@endforelse</tbody></table></div>{{ $entries->links() }}</section>
+@endsection
