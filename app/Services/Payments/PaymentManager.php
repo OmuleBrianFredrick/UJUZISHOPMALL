@@ -13,6 +13,7 @@ class PaymentManager
     {
         return match ($method) {
             'mtn_momo' => app(MtnMomoGateway::class),
+            'airtel_money' => app(AirtelMoneyGateway::class),
             default => throw new RuntimeException('Payment provider is not configured for this method.'),
         };
     }
@@ -20,7 +21,6 @@ class PaymentManager
     public function initiate(Order $order, Payment $payment, string $phone): Payment
     {
         $result = $this->gateway($payment->method)->initiate($order, $payment, $phone);
-
         return DB::transaction(function () use ($payment, $result) {
             $payment->update([
                 'status' => $result['status'],
@@ -28,7 +28,6 @@ class PaymentManager
                 'provider_response' => $result['provider_response'] ?? null,
                 'failure_reason' => $result['failure_reason'] ?? null,
             ]);
-
             return $payment->fresh();
         });
     }
