@@ -67,6 +67,22 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Payout failure reversal
 - Seller payout history
 
+### Admin Commerce Command Centre — Phase 10
+- Central admin commerce dashboard
+- Sales and paid-order KPIs
+- Customer and product counts
+- Low-stock monitoring
+- Seller and pending-seller monitoring
+- Pending/processing payment monitoring
+- Platform commission totals
+- Seller credit totals
+- Daily paid-sales reporting
+- Recent order operational view
+- Payment-method/status health breakdown
+- Inventory watch list
+- Configurable 7–365 day reporting window
+- Authenticated admin-only access boundary
+
 ### Existing inventory foundation
 - Product management
 - SKU/category/description/price management
@@ -90,8 +106,8 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 7 | Seller financial ledger + commission settlement | 🟢 Implemented |
 | 8 | Airtel Money adapter + callback verification | 🟢 Implemented |
 | 9 | Seller payouts + payout ledger + admin approval | 🟢 Implemented |
-| 10 | Admin commerce dashboard + financial analytics | 🔜 Next |
-| 11 | Notifications & delivery management | Planned |
+| 10 | Admin commerce dashboard + financial analytics | 🟢 Implemented |
+| 11 | Notifications & delivery management | 🔜 Next |
 | 12 | Reviews, wishlist, promotions & loyalty | Planned |
 | 13 | Production hardening, testing & deployment | Planned |
 
@@ -124,10 +140,6 @@ Each financial entry stores seller, order/payment context when applicable, type,
 5. The payout can be completed with a provider reference after the actual mobile-money disbursement.
 6. A failed approved/processing payout creates a compensating credit ledger entry and restores the seller's available balance.
 7. Payout records remain immutable in history rather than being deleted.
-
-### Important provider boundary
-
-The payout accounting and approval engine is production-safe, but **automated MTN/Airtel disbursement is deliberately not fabricated**. Collections APIs and disbursement APIs are separate products with separate merchant credentials and provider-specific contracts. Phase 9 therefore records the exact provider reference supplied after the disbursement, while Phase 10/production configuration will connect the approved disbursement adapters once the merchant disbursement credentials and provider-approved endpoints are available.
 
 ## 💳 Payment architecture
 
@@ -201,21 +213,27 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 9 — Seller Payout Engine
+### Phase 10 — Admin Commerce Command Centre
 **Implemented:**
-- Added the missing `financial_ledgers` migration after repository reconciliation showed the model existed without its migration.
-- Added `payouts` migration and `Payout` model.
-- Added seller payout request workflow.
-- Added configurable minimum payout threshold.
-- Added balance-aware payout reservation so multiple pending requests cannot oversubscribe seller funds.
-- Added admin payout queue and approval workflow.
-- Added payout reservation debit ledger entry.
-- Added paid-state recording with provider reference.
-- Added failure-state handling with compensating payout-reversal credit.
-- Added seller payout history UI.
-- Added admin payout operations UI.
-- Added seller and admin routes with role checks.
-- Kept automated provider disbursement behind a real provider credential/API boundary instead of inventing endpoints.
+- Added `AdminCommerceController` with admin-only access.
+- Added centralized sales, order, customer, product and seller KPIs.
+- Added paid-sales and platform-commission reporting.
+- Added seller-credit reporting from the financial ledger.
+- Added pending-payment and pending-seller operational monitoring.
+- Added low-stock inventory monitoring.
+- Added recent orders and payment-health tables.
+- Added daily paid-sales reporting over a configurable 7–365 day window.
+- Added `/admin/commerce` route and dashboard view.
+- Reconciled the route file after detecting that Phase 9 had added payout routes since the earlier route snapshot.
+
+**Design boundary:** this phase provides operational visibility without giving the dashboard permission to mutate financial records. Financial ledger entries remain the source of truth.
+
+### Phase 9 — Seller Payout Engine
+- Added payout records and seller payout workflow.
+- Added minimum payout threshold and balance reservation.
+- Added admin approval and failure reversal.
+- Added payout history and financial audit trail.
+- Kept automated provider disbursement behind real provider credentials/API contracts.
 
 ### Phase 8 — Airtel Money Provider Integration
 - Added `AirtelMoneyGateway` implementing the existing provider contract.
@@ -225,8 +243,6 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Added Airtel callback normalization.
 - Added `/payments/callback/airtel` endpoint.
 - Unified MTN/Airtel callback settlement through one provider-neutral payment path.
-- Added provider mismatch protection and idempotent terminal-state handling.
-- Reused the existing financial settlement engine after successful Airtel payment.
 
 ### Phase 7 — Seller Financial Ledger & Commission Engine
 - Added financial ledger model and settlement engine.
@@ -234,7 +250,6 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Added seller sale credits and platform commission debits.
 - Added duplicate-settlement protection.
 - Added seller balance service and finance dashboard.
-- Reconciled the repository with a missing financial-ledger migration in Phase 9.
 
 ### Phase 6 — Seller Commerce Centre + Schema Integrity
 - Added seller product create/edit/delete operations.
