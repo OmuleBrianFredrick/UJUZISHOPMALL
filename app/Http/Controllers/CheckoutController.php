@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,7 +21,7 @@ class CheckoutController extends Controller
         return view('storefront.checkout', compact('cart', 'subtotal', 'deliveryFee'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, NotificationService $notifications)
     {
         $validated = $request->validate([
             'customer_name' => ['required', 'string', 'max:120'],
@@ -70,6 +71,7 @@ class CheckoutController extends Controller
         });
 
         $request->session()->forget('cart');
-        return redirect()->route('orders.show', $order)->with('success', 'Order placed successfully.');
+        $notifications->order($order, 'order_confirmation');
+        return redirect()->route('orders.show', $order)->with('success', 'Order placed successfully. A confirmation has been queued to your email.');
     }
 }
