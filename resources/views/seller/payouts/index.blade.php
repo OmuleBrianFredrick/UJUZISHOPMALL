@@ -1,0 +1,9 @@
+@extends('layouts.dashboard')
+@section('title','Seller Payouts')
+@section('content')
+<div class="dashboard-hero"><div><div class="dashboard-kicker">Seller Finance</div><h1 class="dashboard-title">Request a Payout</h1><p class="dashboard-subtitle">Withdraw available earnings through MTN Mobile Money or Airtel Money.</p></div></div>
+@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+<section class="dashboard-panel"><form method="POST" action="{{ route('seller.payouts.store') }}">@csrf<div class="form-grid"><div><label>Amount (UGX)</label><input type="number" name="amount" min="1" step="0.01" value="{{ old('amount') }}" required></div><div><label>Mobile money</label><select name="method" required><option value="mtn_momo">MTN Mobile Money</option><option value="airtel_money">Airtel Money</option></select></div><div><label>Receiving phone</label><input type="text" name="phone" value="{{ old('phone', auth()->user()->phone) }}" required></div></div><button class="btn btn-primary" type="submit">Request payout</button></form></section>
+<section class="dashboard-panel"><h3>Payout history</h3><div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Phone</th><th>Status</th><th>Reference</th></tr></thead><tbody>@forelse($payouts as $payout)<tr><td>{{ $payout->created_at->format('d M Y H:i') }}</td><td>UGX {{ number_format($payout->amount,0) }}</td><td>{{ strtoupper($payout->provider) }}</td><td>{{ $payout->phone }}</td><td>{{ ucfirst($payout->status) }}</td><td>{{ $payout->merchant_reference }}</td></tr>@empty<tr><td colspan="6">No payout requests yet.</td></tr>@endforelse</tbody></table></div>{{ $payouts->links() }}</section>
+@endsection
