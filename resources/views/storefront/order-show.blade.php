@@ -1,0 +1,12 @@
+@extends('layouts.dashboard')
+@section('title', 'Order '.$order->order_number)
+@section('content')
+<div class="dashboard-hero"><div><div class="dashboard-kicker">Order confirmation</div><h1 class="dashboard-title">{{ $order->order_number }}</h1><p class="dashboard-subtitle">Placed {{ $order->created_at->format('d M Y, H:i') }}</p></div><a class="btn-outline-dark" href="{{ route('orders.index') }}">My Orders</a></div>
+@if(session('success'))<div class="dashboard-panel" style="margin-bottom:16px;color:#047857;background:#ecfdf5">{{ session('success') }}</div>@endif
+<div class="dashboard-panel">
+<div class="order-detail-status"><span class="order-status order-status-{{ $order->status }}">{{ ucfirst($order->status) }}</span><span class="payment-status">Payment: {{ ucfirst($order->payment_status) }}</span></div>
+@foreach($order->items as $item)<div class="cart-row"><div class="cart-product">@if($item->product?->image)<img src="{{ asset('storage/'.$item->product->image) }}" alt="{{ $item->product_name }}">@else<div class="product-placeholder"><i class="fa-solid fa-box"></i></div>@endif<div><strong>{{ $item->product_name }}</strong><span>{{ $item->quantity }} × UGX {{ number_format($item->unit_price,0) }}</span></div></div><span></span><strong>UGX {{ number_format($item->line_total,0) }}</strong><span></span></div>@endforeach
+<div class="checkout-total"><span>Subtotal</span><strong>UGX {{ number_format($order->subtotal,0) }}</strong></div><div class="checkout-total"><span>Delivery</span><strong>{{ $order->delivery_fee ? 'UGX '.number_format($order->delivery_fee,0) : 'FREE' }}</strong></div><div class="checkout-total grand"><span>Total</span><strong>UGX {{ number_format($order->total,0) }}</strong></div>
+</div>
+<div class="dashboard-panel" style="margin-top:16px"><h2 class="panel-title">Delivery details</h2><p><strong>{{ $order->customer_name }}</strong><br>{{ $order->customer_phone }}<br>{{ $order->delivery_address }}</p>@if($order->notes)<p class="panel-note">Note: {{ $order->notes }}</p>@endif</div>
+@endsection
