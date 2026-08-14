@@ -10,6 +10,8 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\SellerProductController;
+use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\UserController;
 
@@ -46,6 +48,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/sell', [SellerController::class, 'apply'])->name('seller.apply');
     Route::post('/sell', [SellerController::class, 'store'])->name('seller.apply.store');
     Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
+    Route::get('/seller/products', [SellerProductController::class, 'index'])->name('seller.products.index');
+    Route::get('/seller/products/create', [SellerProductController::class, 'create'])->name('seller.products.create');
+    Route::post('/seller/products', [SellerProductController::class, 'store'])->name('seller.products.store');
+    Route::get('/seller/products/{product}/edit', [SellerProductController::class, 'edit'])->name('seller.products.edit');
+    Route::put('/seller/products/{product}', [SellerProductController::class, 'update'])->name('seller.products.update');
+    Route::delete('/seller/products/{product}', [SellerProductController::class, 'destroy'])->name('seller.products.destroy');
+    Route::get('/seller/orders', [SellerOrderController::class, 'index'])->name('seller.orders.index');
+    Route::get('/seller/orders/{order}', [SellerOrderController::class, 'show'])->name('seller.orders.show');
+    Route::patch('/seller/orders/{order}/status', [SellerOrderController::class, 'updateStatus'])->name('seller.orders.status');
 
     // AdminSellerController performs the role check so this route remains compatible with the current app bootstrap.
     Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
