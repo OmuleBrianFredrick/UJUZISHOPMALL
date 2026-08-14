@@ -51,8 +51,8 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Seller attribution retained on order items
 - Marketplace schema migration explicitly creates seller profiles and seller ownership columns
 
-### Seller financial engine — Phase 7
-- Immutable-style financial ledger records for seller transactions
+### Seller financial engine
+- Dedicated financial ledger
 - Verified-payment settlement into seller earnings
 - Configurable platform commission rate
 - Separate sale credit and commission debit entries
@@ -60,6 +60,12 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Seller earnings/ledger dashboard
 - Idempotent paid-order settlement protection
 - Payment transaction references carried into financial records
+- Seller payout requests
+- Minimum payout threshold
+- Payout reservation against seller balance
+- Admin payout approval
+- Payout failure reversal
+- Seller payout history
 
 ### Existing inventory foundation
 - Product management
@@ -83,8 +89,8 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 6 | Seller product management + seller order views + schema reconciliation | 🟢 Implemented |
 | 7 | Seller financial ledger + commission settlement | 🟢 Implemented |
 | 8 | Airtel Money adapter + callback verification | 🟢 Implemented |
-| 9 | Seller payouts + payout ledger + admin approval | 🔜 Next |
-| 10 | Admin commerce dashboard + financial analytics | Planned |
+| 9 | Seller payouts + payout ledger + admin approval | 🟢 Implemented |
+| 10 | Admin commerce dashboard + financial analytics | 🔜 Next |
 | 11 | Notifications & delivery management | Planned |
 | 12 | Reviews, wishlist, promotions & loyalty | Planned |
 | 13 | Production hardening, testing & deployment | Planned |
@@ -93,7 +99,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 
 Seller money is represented through a dedicated ledger rather than calculated from display totals.
 
-**Verified Payment → Seller Sale Credit + Platform Commission Debit → Seller Available Balance → Future Payout**
+**Verified Payment → Seller Sale Credit + Platform Commission Debit → Seller Available Balance → Payout Request → Admin Approval → Payout Reservation → Provider Settlement**
 
 The default commission rate is configurable with:
 
@@ -101,11 +107,31 @@ The default commission rate is configurable with:
 PLATFORM_COMMISSION_RATE=10
 ```
 
-Each financial entry stores seller, order, payment, type, direction, amount, currency, unique reference, description and metadata. The ledger supports audit-friendly transaction history and prevents the application from silently rewriting historical earnings when product/order display values change.
+The default minimum payout threshold is configurable with:
+
+```env
+MINIMUM_SELLER_PAYOUT=10000
+```
+
+Each financial entry stores seller, order/payment context when applicable, type, direction, amount, currency, unique reference, description and metadata. The ledger supports audit-friendly transaction history and prevents the application from silently rewriting historical earnings when product/order display values change.
+
+### Payout lifecycle
+
+1. Seller submits a payout request.
+2. The system checks available balance after other pending/approved/processing reservations.
+3. Payout remains `pending` until administrator approval.
+4. Approval atomically reserves the requested amount with a debit ledger entry.
+5. The payout can be completed with a provider reference after the actual mobile-money disbursement.
+6. A failed approved/processing payout creates a compensating credit ledger entry and restores the seller's available balance.
+7. Payout records remain immutable in history rather than being deleted.
+
+### Important provider boundary
+
+The payout accounting and approval engine is production-safe, but **automated MTN/Airtel disbursement is deliberately not fabricated**. Collections APIs and disbursement APIs are separate products with separate merchant credentials and provider-specific contracts. Phase 9 therefore records the exact provider reference supplied after the disbursement, while Phase 10/production configuration will connect the approved disbursement adapters once the merchant disbursement credentials and provider-approved endpoints are available.
 
 ## 💳 Payment architecture
 
-The payment domain is provider-aware without coupling checkout to one vendor. Each payment belongs to an order and stores provider, method, lifecycle status, merchant reference, provider reference, amount, currency, payer phone and normalized provider response. fileciteturn186file0
+The payment domain is provider-aware without coupling checkout to one vendor. Each payment belongs to an order and stores provider, method, lifecycle status, merchant reference, provider reference, amount, currency, payer phone and normalized provider response.
 
 The flow is:
 
@@ -113,7 +139,7 @@ The flow is:
 
 ### MTN MoMo
 
-MTN remains configured through environment variables and the existing collections adapter. Its callback continues to feed the common settlement path. fileciteturn181file0
+MTN remains configured through environment variables and the existing collections adapter. Its callback continues to feed the common settlement path.
 
 ```env
 MTN_MOMO_BASE_URL=https://sandbox.momodeveloper.mtn.com
@@ -138,8 +164,6 @@ AIRTEL_MONEY_CURRENCY=UGX
 ```
 
 The exact production base URL and merchant credentials must be supplied from the Airtel Money merchant/API account before live transactions are enabled. The application deliberately fails closed when those values are absent.
-
-The payment manager now resolves both `mtn_momo` and `airtel_money` to dedicated gateway implementations. fileciteturn180file0
 
 ## 🏪 Marketplace architecture
 
@@ -177,8 +201,23 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 8 — Airtel Money Provider Integration
+### Phase 9 — Seller Payout Engine
 **Implemented:**
+- Added the missing `financial_ledgers` migration after repository reconciliation showed the model existed without its migration.
+- Added `payouts` migration and `Payout` model.
+- Added seller payout request workflow.
+- Added configurable minimum payout threshold.
+- Added balance-aware payout reservation so multiple pending requests cannot oversubscribe seller funds.
+- Added admin payout queue and approval workflow.
+- Added payout reservation debit ledger entry.
+- Added paid-state recording with provider reference.
+- Added failure-state handling with compensating payout-reversal credit.
+- Added seller payout history UI.
+- Added admin payout operations UI.
+- Added seller and admin routes with role checks.
+- Kept automated provider disbursement behind a real provider credential/API boundary instead of inventing endpoints.
+
+### Phase 8 — Airtel Money Provider Integration
 - Added `AirtelMoneyGateway` implementing the existing provider contract.
 - Added Airtel client ID/secret/base URL configuration.
 - Registered `airtel_money` in `PaymentManager`.
@@ -189,14 +228,13 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Added provider mismatch protection and idempotent terminal-state handling.
 - Reused the existing financial settlement engine after successful Airtel payment.
 
-**Configuration boundary:** live Airtel credentials and the merchant-approved production API base URL are deployment secrets and are intentionally not stored in GitHub.
-
 ### Phase 7 — Seller Financial Ledger & Commission Engine
-- Added financial ledger migration/model.
+- Added financial ledger model and settlement engine.
 - Added configurable platform commission.
 - Added seller sale credits and platform commission debits.
 - Added duplicate-settlement protection.
 - Added seller balance service and finance dashboard.
+- Reconciled the repository with a missing financial-ledger migration in Phase 9.
 
 ### Phase 6 — Seller Commerce Centre + Schema Integrity
 - Added seller product create/edit/delete operations.
@@ -234,6 +272,7 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Use HTTPS for production payment callbacks.
 - Treat the financial ledger as an audit trail; do not mutate historical entries to fake balances.
 - Keep provider credentials and production endpoints out of Git history.
+- Never mark a payout paid without recording the actual provider/reference evidence.
 
 ## 📌 Development principle
 
