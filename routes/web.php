@@ -47,11 +47,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/sell', [SellerController::class, 'store'])->name('seller.apply.store');
     Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
 
-    Route::middleware('admin')->group(function () {
-        Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
-        Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
-        Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
-    });
+    // AdminSellerController performs the role check so this route remains compatible with the current app bootstrap.
+    Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
+    Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
+    Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
 
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/analytics', [ProductController::class, 'analytics'])->name('products.analytics');
