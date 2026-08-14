@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminSellerController;
+use App\Http\Controllers\AdminPayoutController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\OtpController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerFinanceController;
+use App\Http\Controllers\SellerPayoutController;
 use App\Http\Controllers\SellerProductController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\StorefrontController;
@@ -48,6 +50,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/sell', [SellerController::class, 'store'])->name('seller.apply.store');
     Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
     Route::get('/seller/finance', [SellerFinanceController::class, 'index'])->name('seller.finance.index');
+    Route::get('/seller/payouts', [SellerPayoutController::class, 'index'])->name('seller.payouts.index');
+    Route::post('/seller/payouts', [SellerPayoutController::class, 'store'])->name('seller.payouts.store');
     Route::get('/seller/products', [SellerProductController::class, 'index'])->name('seller.products.index');
     Route::get('/seller/products/create', [SellerProductController::class, 'create'])->name('seller.products.create');
     Route::post('/seller/products', [SellerProductController::class, 'store'])->name('seller.products.store');
@@ -60,6 +64,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
     Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
     Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
+    Route::get('/admin/payouts', [AdminPayoutController::class, 'index'])->name('admin.payouts.index');
+    Route::patch('/admin/payouts/{payout}/approve', [AdminPayoutController::class, 'approve'])->name('admin.payouts.approve');
+    Route::patch('/admin/payouts/{payout}/paid', [AdminPayoutController::class, 'paid'])->name('admin.payouts.paid');
+    Route::patch('/admin/payouts/{payout}/fail', [AdminPayoutController::class, 'fail'])->name('admin.payouts.fail');
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/analytics', [ProductController::class, 'analytics'])->name('products.analytics');
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
