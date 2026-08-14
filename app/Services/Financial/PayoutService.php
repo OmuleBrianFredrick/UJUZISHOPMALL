@@ -16,18 +16,12 @@ class PayoutService
         $minimum = (float) config('commerce.minimum_payout', env('MINIMUM_SELLER_PAYOUT', 10000));
         if ($amount < $minimum) throw new RuntimeException('Payout amount is below the minimum payout threshold.');
         if (! in_array($method, ['mtn_momo', 'airtel_money'], true)) throw new RuntimeException('Unsupported payout method.');
-
         return DB::transaction(function () use ($seller, $amount, $method, $phone) {
-            $seller = User::whereKey($seller->id)->lockForUpdate()->firstOrFail();
+            User::whereKey($seller->id)->lockForUpdate()->firstOrFail();
             $balance = $this->balance($seller->id);
             $reserved = (float) Payout::where('seller_id', $seller->id)->whereIn('status', ['pending', 'approved', 'processing'])->sum('amount');
-            $available = round($balance - $reserved, 2);
-            if ($amount > $available) throw new RuntimeException('Insufficient available balance for this payout.');
-            return Payout::create([
-                'seller_id' => $seller->id, 'provider' => $method === 'mtn_momo' ? 'mtn' : 'airtel', 'method' => $method,
-                'phone' => $phone, 'amount' => $amount, 'currency' => 'UGX', 'status' => 'pending',
-                'merchant_reference' => 'UJM-PAYOUT-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(8)),
-            ]);
+            if ($amount > round($balance - $reserved, 2)) throw new RuntimeException('Insufficient available balance for this payout.');
+            return Payout::create(['seller_id' => $seller->id, 'provider' => $method === 'mtn_momo' ? 'mtn' : 'airtel', 'method' => $method, 'phone' => $phone, 'amount' => $amount, 'currency' => 'UGX', 'status' => 'pending', 'merchant_reference' => 'UJM-PAYOUT-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(8))]);
         });
     }
 
@@ -37,9 +31,8 @@ class PayoutService
             $seller = User::whereKey($payout->seller_id)->lockForUpdate()->firstOrFail();
             $payout = Payout::whereKey($payout->id)->lockForUpdate()->firstOrFail();
             if ($payout->status !== 'pending') throw new RuntimeException('Only pending payouts can be approved.');
-            $available = $this->balance($seller->id) - (float) Payout::where('seller_id', $seller->id)->whereIn('status', ['pending', 'approved', 'processing'])->whereKeyNot($payout->id)->sum('amount');
-            if ($payout->amount > $available) throw new RuntimeException('Seller balance changed and no longer covers this payout.');
-
+            $reservedOthers = (float) Payout::where('seller_id', $seller->id)->whereIn('status', ['pending', 'approved', 'processing'])->where('id', '!=', $payout->id)->sum('amount');
+            if ($payout->amount > round($this->balance($seller->id) - $reservedOthers, 2)) throw new RuntimeException('Seller balance changed and no longer covers this payout.');
             $payout->update(['status' => 'approved', 'approved_by' => $admin->id, 'approved_at' => now()]);
             $this->ledger($payout, 'debit', 'payout_reserved', 'Seller payout reserved for processing.');
             return $payout->fresh();
@@ -76,10 +69,6 @@ class PayoutService
 
     private function ledger(Payout $payout, string $direction, string $type, string $description): void
     {
-        FinancialLedger::create([
-            'seller_id' => $payout->seller_id, 'type' => $type, 'direction' => $direction, 'amount' => $payout->amount,
-            'currency' => $payout->currency, 'reference' => $payout->merchant_reference . '-' . $type,
-            'description' => $description, 'metadata' => ['payout_id' => $payout->id, 'method' => $payout->method],
-        ]);
+        FinancialLedger::create(['seller_id' => $payout->seller_id, 'type' => $type, 'direction' => $direction, 'amount' => $payout->amount, 'currency' => $payout->currency, 'reference' => $payout->merchant_reference . '-' . $type, 'description' => $description, 'metadata' => ['payout_id' => $payout->id, 'method' => $payout->method]]);
     }
 }
