@@ -40,18 +40,30 @@ class PaymentController extends Controller
 
     public function callbackMtn(Request $request, PaymentManager $manager, CommissionService $commissionService)
     {
+        return $this->processProviderCallback($request, $manager, $commissionService, 'mtn_momo');
+    }
+
+    public function callbackAirtel(Request $request, PaymentManager $manager, CommissionService $commissionService)
+    {
+        return $this->processProviderCallback($request, $manager, $commissionService, 'airtel_money');
+    }
+
+    private function processProviderCallback(Request $request, PaymentManager $manager, CommissionService $commissionService, string $method)
+    {
         $payload = $request->json()->all();
-        $providerReference = $payload['referenceId'] ?? $payload['financialTransactionId'] ?? null;
+        $normalized = $manager->gateway($method)->handleCallback($payload);
+        $providerReference = $normalized['provider_reference'] ?? null;
         if (! $providerReference) return response()->json(['message' => 'Missing payment reference'], 422);
-        $payment = Payment::where('provider_reference', $providerReference)->first();
+        $payment = Payment::where('provider_reference', $providerReference)->orWhere('merchant_reference', $providerReference)->first();
         if (! $payment) return response()->json(['message' => 'Payment not found'], 404);
+        if ($payment->method !== $method) return response()->json(['message' => 'Payment provider mismatch'], 409);
         if (in_array($payment->status, ['successful', 'failed'], true)) return response()->json(['ok' => true]);
-        $normalized = $manager->gateway('mtn_momo')->handleCallback($payload);
         DB::transaction(function () use ($payment, $normalized, $commissionService) {
             $payment->update(['status' => $normalized['status'], 'failure_reason' => $normalized['failure_reason'] ?? null, 'provider_response' => $normalized['provider_response'] ?? null, 'paid_at' => $normalized['status'] === 'successful' ? now() : null]);
             if ($normalized['status'] === 'successful') {
-                $payment->order()->update(['payment_status' => 'paid', 'status' => 'confirmed']);
-                $commissionService->settlePaidOrder($payment->order, $payment);
+                $order = $payment->order()->lockForUpdate()->first();
+                $order->update(['payment_status' => 'paid', 'status' => 'confirmed']);
+                $commissionService->settlePaidOrder($order, $payment);
             } elseif ($normalized['status'] === 'failed') {
                 $payment->order()->update(['payment_status' => 'failed']);
             }
