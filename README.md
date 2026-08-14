@@ -9,8 +9,15 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Product detail and related-product pages
 - Responsive shopping experience
 - Customer accounts for order tracking and purchase history
-- Customer checkout identity captured with contact and delivery information
+- Checkout requires customer name, email, phone number and delivery address
 - Customer accounts are **not forced through staff OTP**
+
+### Customer notifications — Phase 11 in progress
+- Dedicated order-status email notification
+- Notifications triggered when seller fulfilment status changes
+- Delivery-oriented messaging for `shipped` and `delivered` states
+- Customer email is persisted on the order for reliable notification targeting
+- Notification remains tied to the specific order number and delivery address
 
 ### Shopping cart
 - Session-based cart
@@ -126,7 +133,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 9 | Seller payouts + payout ledger + admin approval | 🟢 Implemented |
 | 10 | Admin commerce dashboard + financial analytics | 🟢 Implemented |
 | 10A | Staff email OTP security reconciliation | 🟢 Implemented |
-| 11 | Customer notifications + delivery management | 🔜 Next |
+| 11 | Customer notifications + delivery management | 🟡 In progress |
 | 12 | Reviews, wishlist, promotions & loyalty | Planned |
 | 13 | Production hardening, testing & deployment | Planned |
 
@@ -148,7 +155,27 @@ Their login is:
 
 The OTP challenge is also enforced after Google authentication for these roles, so the Google login path cannot bypass the second factor.
 
-The OTP is never stored in plaintext. The database stores a hash, with an expiry timestamp, consumed timestamp and attempt/request controls.
+The OTP is never stored in plaintext. The database stores a hash, with an expiry timestamp, consumed timestamp and request controls.
+
+## 📦 Checkout and customer identity
+
+A customer account is used to keep cart/order ownership and purchase history separated between people. At checkout the order independently captures:
+
+- Full name
+- Email address
+- Phone number
+- Delivery address
+- Optional delivery notes
+
+The customer's email is persisted directly on the order so delivery notifications remain tied to the contact information supplied for that purchase.
+
+## 🔔 Delivery notification flow
+
+**Customer Checkout → Order Created → Seller Processes → Ready → Shipped → Delivered → Customer Email Notification**
+
+For seller-managed status changes, Ujuzi Shop Mall sends the customer an order-status email when the status actually changes. `shipped` and `delivered` states contain delivery-specific messaging.
+
+The notification layer is intentionally being built around meaningful order events rather than sending marketing messages indiscriminately.
 
 ## 💰 Seller financial architecture
 
@@ -211,6 +238,22 @@ php artisan config:cache
 Never commit production credentials, API keys, signing secrets or payment-provider tokens.
 
 ## 📝 Upgrade log
+
+### Phase 11 — Customer Notifications & Delivery Management — IN PROGRESS
+**Implemented so far:**
+- Added customer email as a required checkout identity field.
+- Added `customer_email` persistence to orders.
+- Added dedicated order-status email mailable/template.
+- Added automatic customer notification when a seller changes an order's fulfilment status.
+- Added delivery-specific messaging for shipped and delivered states.
+- Ensured notifications are sent only when the status actually changes.
+
+**Next within Phase 11:**
+- Expand delivery state/dispatch management.
+- Add customer-facing order tracking visibility.
+- Add robust notification failure handling/queueing.
+- Add notification preferences where appropriate.
+- Reconcile all delivery transitions before closing the phase.
 
 ### Phase 10A — Staff Email OTP Security Reconciliation
 **Implemented:**
