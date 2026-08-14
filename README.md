@@ -12,12 +12,16 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Checkout requires customer name, email, phone number and delivery address
 - Customer accounts are **not forced through staff OTP**
 
-### Customer notifications — Phase 11 in progress
-- Dedicated order-status email notification
-- Notifications triggered when seller fulfilment status changes
-- Delivery-oriented messaging for `shipped` and `delivered` states
-- Customer email is persisted on the order for reliable notification targeting
-- Notification remains tied to the specific order number and delivery address
+### Customer notifications & delivery — Phase 11
+- Order confirmation email queued after checkout
+- Payment success/failure email queued after provider callback
+- Order-status email notifications for fulfilment changes
+- Delivery-specific messages for `shipped` and `delivered`
+- Customer-facing delivery timeline: confirmed → processing → ready → shipped → delivered
+- Notification audit log storing recipient, type, order, status and failure reason
+- Queued mail delivery so email problems do not block checkout/order state changes
+- Failed queued notifications are recorded for later operational review
+- Customer email is persisted on the order and used as the notification destination
 
 ### Shopping cart
 - Session-based cart
@@ -108,16 +112,6 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Dedicated staff OTP verification screen
 - Pending staff login is held in the session until OTP verification succeeds
 
-### Existing inventory foundation
-- Product management
-- SKU/category/description/price management
-- Stock-in and stock-out workflows
-- Reorder-level monitoring
-- Stock movement history
-- Inventory analytics
-- User management
-- Authentication, OTP and Google authentication support
-
 ## 🧭 Product roadmap
 
 | Phase | Area | Status |
@@ -155,8 +149,6 @@ Their login is:
 
 The OTP challenge is also enforced after Google authentication for these roles, so the Google login path cannot bypass the second factor.
 
-The OTP is never stored in plaintext. The database stores a hash, with an expiry timestamp, consumed timestamp and request controls.
-
 ## 📦 Checkout and customer identity
 
 A customer account is used to keep cart/order ownership and purchase history separated between people. At checkout the order independently captures:
@@ -169,13 +161,29 @@ A customer account is used to keep cart/order ownership and purchase history sep
 
 The customer's email is persisted directly on the order so delivery notifications remain tied to the contact information supplied for that purchase.
 
-## 🔔 Delivery notification flow
+## 🔔 Notification architecture
 
-**Customer Checkout → Order Created → Seller Processes → Ready → Shipped → Delivered → Customer Email Notification**
+**Order Event → NotificationLog → Queued Mailable → Email Provider → Customer**
 
-For seller-managed status changes, Ujuzi Shop Mall sends the customer an order-status email when the status actually changes. `shipped` and `delivered` states contain delivery-specific messaging.
+Transactional notifications currently cover:
 
-The notification layer is intentionally being built around meaningful order events rather than sending marketing messages indiscriminately.
+- Order confirmation
+- Payment success
+- Payment failure
+- Processing
+- Ready for dispatch
+- Shipped
+- Delivered
+
+The notification layer is intentionally event-driven and transactional rather than a general marketing-mail system. A notification failure must never undo a successful order or payment transaction.
+
+## 📦 Delivery tracking
+
+The customer order page now displays:
+
+**Confirmed → Processing → Ready → Shipped → Delivered**
+
+Seller order status changes remain ownership-scoped to orders containing that seller's products. Customer order pages remain protected by `user_id`, preventing one customer from viewing another customer's order.
 
 ## 💰 Seller financial architecture
 
@@ -201,7 +209,7 @@ The payment domain is provider-aware without coupling checkout to one vendor. Ea
 
 The flow is:
 
-**Order → Payment Transaction → Provider Request → Processing → Callback/Status Verification → Successful/Failed → Financial Settlement → Order Fulfilment**
+**Order → Payment Transaction → Provider Request → Processing → Callback/Status Verification → Successful/Failed → Financial Settlement → Order Fulfilment → Notification**
 
 ## 🏪 Marketplace architecture
 
@@ -228,72 +236,52 @@ php artisan storage:link
 php artisan serve
 ```
 
-After changing payment or commission environment variables:
-
-```bash
-php artisan config:clear
-php artisan config:cache
-```
+For queued email notifications, production should run a queue worker appropriate to the configured queue driver.
 
 Never commit production credentials, API keys, signing secrets or payment-provider tokens.
 
 ## 📝 Upgrade log
 
 ### Phase 11 — Customer Notifications & Delivery Management — IN PROGRESS
-**Implemented so far:**
-- Added customer email as a required checkout identity field.
-- Added `customer_email` persistence to orders.
-- Added dedicated order-status email mailable/template.
-- Added automatic customer notification when a seller changes an order's fulfilment status.
-- Added delivery-specific messaging for shipped and delivered states.
-- Ensured notifications are sent only when the status actually changes.
+**Implemented in this continuation:**
+- Added customer order confirmation email.
+- Added payment success/failure notifications from provider callbacks.
+- Added queued order-status notifications.
+- Added notification delivery audit table/model.
+- Added notification failure capture through queued mailables.
+- Added customer order delivery timeline.
+- Added responsive delivery timeline styling.
+- Centralized notification dispatch through `NotificationService`.
+- Kept notification failures separate from checkout/payment transactions.
 
-**Next within Phase 11:**
-- Expand delivery state/dispatch management.
-- Add customer-facing order tracking visibility.
-- Add robust notification failure handling/queueing.
-- Add notification preferences where appropriate.
-- Reconcile all delivery transitions before closing the phase.
+**Repository reconciliation:**
+- The existing seller order controller already contained direct order-status email dispatch. It was left intact after two SHA-conflict attempts rather than risking an unsafe overwrite. The new centralized notification service is implemented for checkout/payment flows and the existing seller status notification remains functional. The seller controller is therefore the remaining reconciliation item before Phase 11 can be closed.
+
+**Remaining before Phase 11 closure:**
+- Reconcile the seller order controller into the centralized notification service.
+- Enforce sequential seller delivery status transitions.
+- Add notification preference controls if required for non-essential messages.
+- Verify queue worker configuration and automated tests.
 
 ### Phase 10A — Staff Email OTP Security Reconciliation
-**Implemented:**
-- Audited the previous OTP implementation and found it was phone/SMS based rather than the intended staff email OTP flow.
-- Removed the OTP login dependency on a `phone` field that was not part of the current user model.
-- Added dedicated email-based OTP persistence with `user_id`, `email`, expiry, consumption and request-attempt tracking.
-- Added hashed OTP storage.
-- Added 5-minute OTP expiry and single-use consumption.
-- Added 3-code-per-10-minutes request throttling.
-- Changed password login so privileged staff are **not authenticated until OTP verification succeeds**.
+- Reconciled privileged staff email OTP authentication.
 - Limited mandatory OTP to `admin` and `inventory_manager` roles.
-- Kept ordinary customer login free from staff OTP.
-- Added a dedicated staff OTP verification screen and resend flow.
-- Protected Google sign-in for privileged staff with the same email OTP challenge.
-- Reconciled routes without dropping the Phase 9 payout routes.
-
-**Security boundary:** the OTP is an access-control mechanism for privileged platform users, not a general customer notification feature.
+- Kept customers outside the staff OTP flow.
 
 ### Phase 10 — Admin Commerce Command Centre
 - Added centralized commerce KPIs and operational reporting.
-- Added sales, orders, customers, products, seller, payment and inventory monitoring.
-- Added daily paid-sales reporting and payment health breakdown.
 
 ### Phase 9 — Seller Payout Engine
-- Added payout records and seller payout workflow.
-- Added minimum payout threshold and balance reservation.
-- Added admin approval and failure reversal.
-- Added payout history and financial audit trail.
+- Added payout records, reservations, admin approval and failure reversal.
 
 ### Phase 8 — Airtel Money Provider Integration
 - Added Airtel Money gateway and callback integration.
-- Unified Airtel and MTN payment settlement paths.
 
 ### Phase 7 — Seller Financial Ledger & Commission Engine
-- Added financial ledger model and settlement engine.
-- Added configurable platform commission and seller balance calculations.
+- Added financial ledger and commission settlement.
 
 ### Phase 6 — Seller Commerce Centre + Schema Integrity
 - Added seller product/order operations and ownership enforcement.
-- Reconciled marketplace schema state.
 
 ### Phase 5 — Multi-Vendor Marketplace Foundation
 - Added seller applications, profiles and approval workflow.
