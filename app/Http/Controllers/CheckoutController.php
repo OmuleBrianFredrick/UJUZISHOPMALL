@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Promotion;
+use App\Models\LoyaltyAccount;
+use App\Models\LoyaltyTransaction;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +32,8 @@ class CheckoutController extends Controller
             'customer_phone' => ['required', 'string', 'max:30'],
             'delivery_address' => ['required', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'promotion_code' => ['nullable', 'string', 'max:50'],
+            'loyalty_points' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $cart = collect($request->session()->get('cart', []));
@@ -46,11 +51,36 @@ class CheckoutController extends Controller
                 $subtotal += $product->price * $item['quantity'];
             }
 
+            $discount = 0.0;
+            $promotion = null;
+            if (!empty($validated['promotion_code'])) {
+                $promotion = Promotion::where('code', strtoupper(trim($validated['promotion_code'])))->lockForUpdate()->first();
+                if (!$promotion || !$promotion->isValidFor($subtotal)) {
+                    throw ValidationException::withMessages(['promotion_code' => 'The promotion code is invalid, expired, inactive or unavailable.']);
+                }
+                $discount = $promotion->discountFor($subtotal);
+                if ($discount <= 0) throw ValidationException::withMessages(['promotion_code' => 'The promotion code does not provide a valid discount.']);
+                $promotion->increment('usage_count');
+            }
+
+            $pointsUsed = (int) ($validated['loyalty_points'] ?? 0);
+            $pointsDiscount = 0.0;
+            if ($pointsUsed > 0) {
+                $account = LoyaltyAccount::where('user_id', $request->user()->id)->lockForUpdate()->first();
+                $balance = $account?->balance ?? 0;
+                if ($pointsUsed > $balance) throw ValidationException::withMessages(['loyalty_points' => 'You do not have enough loyalty points.']);
+                $pointsDiscount = min($subtotal - $discount, $pointsUsed * 10);
+                if ($pointsDiscount <= 0) throw ValidationException::withMessages(['loyalty_points' => 'The selected loyalty points cannot be applied.']);
+            }
+
+            $total = max(0, round($subtotal - $discount - $pointsDiscount, 2));
             $order = Order::create([
                 'user_id' => $request->user()->id,
                 'order_number' => 'UJM-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(5)),
                 'status' => 'confirmed', 'payment_status' => 'unpaid',
-                'subtotal' => $subtotal, 'delivery_fee' => 0, 'total' => $subtotal,
+                'subtotal' => $subtotal, 'delivery_fee' => 0, 'total' => $total,
+                'discount' => $discount + $pointsDiscount,
+                'promotion_code' => $promotion?->code,
                 ...$validated,
             ]);
 
@@ -65,6 +95,17 @@ class CheckoutController extends Controller
                 $product->stockMovements()->create([
                     'user_id' => $request->user()->id, 'type' => 'out', 'quantity' => $quantity,
                     'note' => 'Customer order ' . $order->order_number,
+                ]);
+            }
+
+            if ($pointsUsed > 0) {
+                LoyaltyTransaction::create([
+                    'user_id' => $request->user()->id,
+                    'type' => 'redemption',
+                    'points' => -$pointsUsed,
+                    'reference_type' => Order::class,
+                    'reference_id' => $order->id,
+                    'description' => 'Loyalty points redeemed on ' . $order->order_number,
                 ]);
             }
             return $order;
