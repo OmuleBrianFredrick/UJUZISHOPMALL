@@ -1,0 +1,6 @@
+@extends('layouts.dashboard')
+@section('title','Seller Order '.$order->order_number)
+@section('content')
+<div class="dashboard-hero"><div><div class="dashboard-kicker">Seller Order</div><h1 class="dashboard-title">{{ $order->order_number }}</h1><p class="dashboard-subtitle">Customer: {{ $order->customer_name }} · {{ $order->customer_phone }}</p></div><a href="{{ route('seller.orders.index') }}" class="btn-outline-dark">Back</a></div>
+<section class="dashboard-panel"><h3>Seller Items</h3><div class="table-wrap"><table class="data-table"><thead><tr><th>Product</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>@foreach($order->items as $item)<tr><td>{{ $item->product_name }}</td><td>{{ $item->quantity }}</td><td>UGX {{ number_format($item->unit_price,0) }}</td><td>UGX {{ number_format($item->line_total,0) }}</td></tr>@endforeach</tbody></table></div><hr><p><strong>Delivery:</strong> {{ $order->delivery_address }}</p><form method="POST" action="{{ route('seller.orders.status',$order) }}" class="payment-form">@csrf @method('PATCH')<label>Order status<select name="status"><option value="processing">Processing</option><option value="ready">Ready</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option></select></label><button class="btn-solid" type="submit">Update Status</button></form></section>
+@endsection
