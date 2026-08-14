@@ -27,4 +27,11 @@ return [
         'api_key' => env('MTN_MOMO_API_KEY'),
         'target_environment' => env('MTN_MOMO_TARGET_ENVIRONMENT', 'sandbox'),
     ],
+    'airtel_money' => [
+        'base_url' => env('AIRTEL_MONEY_BASE_URL'),
+        'client_id' => env('AIRTEL_MONEY_CLIENT_ID'),
+        'client_secret' => env('AIRTEL_MONEY_CLIENT_SECRET'),
+        'country' => env('AIRTEL_MONEY_COUNTRY', 'UG'),
+        'currency' => env('AIRTEL_MONEY_CURRENCY', 'UGX'),
+    ],
 ];
