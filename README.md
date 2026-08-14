@@ -14,7 +14,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Add/remove products and quantity updates
 - Automatic totals and stock-aware operations
 
-### Orders & checkout — Phase 2
+### Orders & checkout
 - Customer checkout and delivery details
 - Persistent orders and order items
 - Unique order numbers
@@ -22,7 +22,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Transaction-safe stock validation and inventory deduction
 - Stock-out movement records linked to orders
 
-### Payments — Phase 3/4
+### Payments
 - Persistent payment transaction records
 - Order-to-payment relationship
 - UGX currency support
@@ -35,7 +35,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Payment status screen and protected customer payment routes
 - Duplicate pending/processing payment protection
 
-### Marketplace — Phase 5/6
+### Marketplace
 - Customer-to-seller application flow
 - Seller profile/store records
 - Pending/approved/rejected seller lifecycle
@@ -47,8 +47,17 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Seller order-status management
 - Product ownership via `seller_id`
 - Seller attribution retained on order items
-- Customer, seller and admin role field foundation
-- Marketplace schema migration now explicitly creates seller profiles and seller ownership columns
+- Marketplace schema migration explicitly creates seller profiles and seller ownership columns
+
+### Seller financial engine — Phase 7
+- Immutable-style financial ledger records for seller transactions
+- Verified-payment settlement into seller earnings
+- Configurable platform commission rate
+- Separate sale credit and commission debit entries
+- Seller credits, debits and available-balance calculations
+- Seller earnings/ledger dashboard
+- Idempotent paid-order settlement protection
+- Payment transaction references carried into financial records
 
 ### Existing inventory foundation
 - Product management
@@ -69,27 +78,49 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 3 | Payment architecture + mobile-money foundation | ✅ Implemented |
 | 4 | MTN MoMo adapter + callback foundation | 🟡 Foundation implemented |
 | 5 | Seller / multi-vendor marketplace foundation | ✅ Implemented |
-| 6 | Seller product management + seller order views | 🟢 Implemented |
-| 7 | Airtel Money adapter + callback verification | 🔜 Next |
-| 8 | Seller commissions + earnings + payouts | Planned |
-| 9 | Admin commerce dashboard + financial analytics | Planned |
-| 10 | Notifications & delivery management | Planned |
-| 11 | Reviews, wishlist, promotions & loyalty | Planned |
-| 12 | Production hardening, testing & deployment | Planned |
+| 6 | Seller product management + seller order views + schema reconciliation | 🟢 Implemented |
+| 7 | Seller financial ledger + commission settlement | 🟢 Implemented |
+| 8 | Airtel Money adapter + callback verification | 🔜 Next |
+| 9 | Seller payouts + payout ledger + admin approval | Planned |
+| 10 | Admin commerce dashboard + financial analytics | Planned |
+| 11 | Notifications & delivery management | Planned |
+| 12 | Reviews, wishlist, promotions & loyalty | Planned |
+| 13 | Production hardening, testing & deployment | Planned |
+
+## 💰 Seller financial architecture
+
+Seller money is now represented through a dedicated ledger rather than calculated from display totals.
+
+**Verified Payment → Seller Sale Credit + Platform Commission Debit → Seller Available Balance → Future Payout**
+
+The default commission rate is configurable with:
+
+```env
+PLATFORM_COMMISSION_RATE=10
+```
+
+Each financial entry stores seller, order, payment, type, direction, amount, currency, unique reference, description and metadata. The ledger supports audit-friendly transaction history and prevents the application from silently rewriting historical earnings when product/order display values change.
+
+### Settlement rules
+
+- Settlement happens only after a payment is normalized as `successful`.
+- Seller earnings are calculated per seller-owned order item.
+- Commission is calculated per seller line item.
+- A successful payment cannot create duplicate sale/commission entries for the same seller/order/payment combination.
+- Seller available balance is credits minus debits.
+- Payouts are deliberately not yet deducted until the dedicated payout ledger is implemented.
 
 ## 💳 Payment architecture
 
 The payment domain is provider-aware without coupling checkout to one vendor. Each payment belongs to an order and stores provider, method, lifecycle status, merchant reference, provider reference, amount, currency, payer phone and normalized provider response.
 
-The live flow is designed as:
+The flow is designed as:
 
-**Order → Payment Transaction → Provider Request → Processing → Callback/Status Verification → Successful/Failed → Order Payment State**
+**Order → Payment Transaction → Provider Request → Processing → Callback/Status Verification → Successful/Failed → Financial Settlement → Order Fulfilment**
 
 ### MTN MoMo
 
-The repository contains an MTN Collections adapter. Its default sandbox base URL, subscription key, API user and API key are supplied through environment configuration. MTN documents RequestToPay as asynchronous: a successful request returns `202 Accepted`, the transaction is processed asynchronously, and the final result is delivered through a callback; MTN also recommends status polling as a fallback because callbacks may not be retried.
-
-Required environment variables:
+The repository contains an MTN Collections adapter with environment-backed configuration. Production credentials must never be committed.
 
 ```env
 MTN_MOMO_BASE_URL=https://sandbox.momodeveloper.mtn.com
@@ -99,43 +130,27 @@ MTN_MOMO_API_KEY=
 MTN_MOMO_TARGET_ENVIRONMENT=sandbox
 ```
 
-Do not put real credentials into GitHub.
-
 ### Airtel Money
 
-Airtel remains behind the provider contract until the exact merchant API endpoints, credentials and callback requirements are configured. Checkout is already provider-isolated so Airtel can be added without rewriting orders or inventory.
+Airtel remains behind the provider contract until its exact merchant API endpoints, credentials and callback requirements are configured. Checkout and financial settlement are already provider-isolated.
 
 ## 🏪 Marketplace architecture
 
-The marketplace now has the core ownership model:
-
 **Customer → Order → Order Item → Product → Seller**
 
-A seller first submits a store application. An administrator approves or rejects the application. Approved sellers can manage their own catalogue and view/manage orders containing their products. Product ownership is represented by `products.seller_id`, while `order_items.seller_id` preserves seller attribution at purchase time.
+A seller submits a store application. An administrator approves or rejects it. Approved sellers can manage their own catalogue and orders containing their products.
 
-Seller operations are ownership-scoped: a seller cannot edit another seller's products or manage an order that does not contain that seller's items.
-
-### Schema integrity checkpoint
-
-A dedicated marketplace migration, `2026_08_14_100001_add_marketplace_seller_structure.php`, now closes the schema gap between the seller code and database layer. It creates `seller_profiles` when absent and safely adds nullable `seller_id` foreign keys to `products` and `order_items` when those columns are missing. This is intentionally idempotent at the schema-column level so existing installations can migrate forward without manually editing older migrations.
-
-### Phase 6 boundary
-
-Commission accounting, seller earnings, payouts, seller analytics and split-order settlement are intentionally separate from this milestone. They require financial ledger design rather than simple totals and will be added next.
+Seller operations are ownership-scoped: a seller cannot edit another seller's products or manage an unrelated order.
 
 ## 🏗️ Overall architecture direction
 
 **Customer storefront → Cart → Checkout → Order → Payment → Fulfilment**
 
-**Seller → Store → Products → Inventory → Orders → Earnings**
+**Seller → Store → Products → Inventory → Orders → Earnings → Payouts**
 
-**Admin → Users → Seller approval → Products → Orders → Payments → Commissions → Analytics**
-
-The existing inventory system is retained as the operational back office rather than discarded.
+**Admin → Users → Seller approval → Products → Orders → Payments → Commissions → Payouts → Analytics**
 
 ## 🛠️ Development notes
-
-Run migrations after pulling the latest changes:
 
 ```bash
 composer install
@@ -144,7 +159,7 @@ php artisan storage:link
 php artisan serve
 ```
 
-Clear Laravel's cached configuration after changing payment environment variables:
+After changing payment or commission environment variables:
 
 ```bash
 php artisan config:clear
@@ -155,79 +170,66 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 6 — Seller Commerce Centre + Schema Integrity
+### Phase 7 — Seller Financial Ledger & Commission Engine
 **Implemented:**
-- Added seller-owned product management controller.
-- Added seller product create/edit/delete operations.
-- Added strict seller ownership checks on product operations.
-- Added seller product catalogue UI.
-- Added seller order list and order-detail UI.
-- Added seller-specific order filtering through `order_items.seller_id`.
-- Added seller order-status updates for processing, ready, shipped and delivered.
-- Added seller routes for catalogue and order management.
-- Reconciled the seller product view against the live repository instead of blindly overwriting it.
-- Added the missing marketplace schema migration for seller profiles and seller ownership foreign keys.
-- Completed the `Product` ownership relationships and casts.
+- Added `financial_ledgers` migration.
+- Added `FinancialLedger` model and seller/order/payment relationships.
+- Added configurable `PLATFORM_COMMISSION_RATE`.
+- Added `CommissionService` for per-seller settlement.
+- Added sale credit and commission debit ledger entries.
+- Added duplicate-settlement protection.
+- Connected verified MTN payment success to financial settlement.
+- Added `BalanceService` for credits, debits and available balance.
+- Added seller finance route and earnings dashboard.
 
-**Financial boundary:** commissions, seller earnings and payouts are not calculated from display totals. They will receive a dedicated ledger in the next financial milestone.
+**Important boundary:** seller payouts are not deducted from available balance yet. Payouts will receive their own workflow and ledger entries so money cannot disappear through an informal balance update.
+
+### Phase 6 — Seller Commerce Centre + Schema Integrity
+- Added seller product create/edit/delete operations.
+- Added strict seller ownership checks.
+- Added seller catalogue and order-management views.
+- Added seller order-status workflow.
+- Added missing marketplace schema migration and reconciled repository state.
 
 ### Phase 5 — Multi-Vendor Marketplace Foundation
-- Added marketplace role field foundation to users.
-- Added seller profiles and approval state.
-- Added seller application flow.
-- Added seller approval/rejection workflow for administrators.
-- Added seller dashboard scoped to seller-owned products.
-- Added `seller_id` ownership to products.
-- Added `seller_id` attribution to order items.
+- Added seller applications, profiles and approval workflow.
+- Added seller ownership and seller attribution to products/order items.
 
 ### Phase 4 — MTN MoMo Provider Adapter & Callback Foundation
 - Added MTN Collections adapter and environment-backed configuration.
 - Added RequestToPay initiation and provider reference storage.
-- Added public callback route and idempotent callback processing.
-- Added automatic paid/confirmed order transition only after successful provider result.
+- Added callback processing and successful-payment order transition.
 
 ### Phase 3 — Payment Architecture & Mobile-Money Foundation
-- Added `payments` table and `Payment` model.
-- Added order-to-payment relationship.
-- Added protected payment initiation/status routes.
-- Added MTN/Airtel method selection UI.
-- Added payment lifecycle fields and transaction references.
-- Added provider-agnostic gateway contract.
+- Added payments table/model, payment routes and provider gateway contract.
 
 ### Phase 2 — Checkout & Orders
-- Added `Order` and `OrderItem` models and migrations.
-- Added transactional checkout processing.
-- Added stock locking and deduction during order creation.
-- Added customer order history/detail pages.
-- Connected cart to checkout.
+- Added transactional checkout, orders, order items and stock deduction.
 
 ### Phase 1 — Storefront & Cart
-- Added customer product catalogue.
-- Added product search, category filtering and sorting.
-- Added product details and related products.
-- Added session shopping cart and responsive storefront styling.
+- Added product catalogue, search, product details and session shopping cart.
 
 ## 🔐 Security principles
 
 - Keep secrets in `.env` and outside version control.
 - Validate all customer input server-side.
 - Verify payment callbacks/server responses before marking orders paid.
-- Make callback processing idempotent.
-- Prefer provider status verification/polling as a fallback where documented.
+- Make callback processing and financial settlement idempotent.
+- Enforce seller ownership on seller operations.
+- Keep seller approval behind authenticated admin authorization.
 - Use HTTPS for production payment callbacks.
-- Enforce seller ownership on every seller product/order operation.
-- Keep administrative seller approval behind authenticated role checks.
+- Treat the financial ledger as an audit trail; do not mutate historical entries to fake balances.
 
 ## 📌 Development principle
 
-Every significant platform upgrade should include:
-1. A focused implementation.
-2. A clear Git commit message.
-3. A GitHub development/comment log.
-4. An update to this README.
-5. A review before the next major module begins.
-6. A reconciliation pass so no failed/partial repository write is left hanging.
+Every significant platform upgrade must include:
+1. Focused implementation.
+2. Clear Git commit message.
+3. GitHub development/comment log.
+4. README update.
+5. Repository verification.
+6. Reconciliation of every failed/partial write before moving forward.
 
 ## License
 
-This project is proprietary unless otherwise stated by its owner. The Laravel framework and its dependencies remain subject to their respective licenses.
+This project is proprietary unless otherwise stated by its owner. The Laravel framework and dependencies remain subject to their respective licenses.
