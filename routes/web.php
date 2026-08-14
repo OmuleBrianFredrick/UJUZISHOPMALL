@@ -11,8 +11,8 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerFinanceController;
 use App\Http\Controllers\SellerPayoutController;
@@ -47,7 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/shop/cart/{product}', [StorefrontController::class, 'removeFromCart'])->name('storefront.cart.remove');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
     Route::post('/wishlist/{product}/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
-    Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store'])->name('products.reviews.store');
+    Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('products.reviews.store');
     Route::get('/loyalty', [LoyaltyController::class, 'index'])->name('loyalty.index');
     Route::post('/promotions/validate', [PromotionController::class, 'validateCode'])->name('promotions.validate');
     Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout');
