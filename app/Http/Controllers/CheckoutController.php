@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Promotion;
-use App\Models\LoyaltyAccount;
 use App\Models\LoyaltyTransaction;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -66,8 +65,7 @@ class CheckoutController extends Controller
             $pointsUsed = (int) ($validated['loyalty_points'] ?? 0);
             $pointsDiscount = 0.0;
             if ($pointsUsed > 0) {
-                $account = LoyaltyAccount::where('user_id', $request->user()->id)->lockForUpdate()->first();
-                $balance = $account?->balance ?? 0;
+                $balance = (int) LoyaltyTransaction::where('user_id', $request->user()->id)->lockForUpdate()->sum('points');
                 if ($pointsUsed > $balance) throw ValidationException::withMessages(['loyalty_points' => 'You do not have enough loyalty points.']);
                 $pointsDiscount = min($subtotal - $discount, $pointsUsed * 10);
                 if ($pointsDiscount <= 0) throw ValidationException::withMessages(['loyalty_points' => 'The selected loyalty points cannot be applied.']);
@@ -81,7 +79,11 @@ class CheckoutController extends Controller
                 'subtotal' => $subtotal, 'delivery_fee' => 0, 'total' => $total,
                 'discount' => $discount + $pointsDiscount,
                 'promotion_code' => $promotion?->code,
-                ...$validated,
+                'customer_name' => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'customer_phone' => $validated['customer_phone'],
+                'delivery_address' => $validated['delivery_address'],
+                'notes' => $validated['notes'] ?? null,
             ]);
 
             foreach ($products as [$product, $quantity]) {
@@ -101,10 +103,10 @@ class CheckoutController extends Controller
             if ($pointsUsed > 0) {
                 LoyaltyTransaction::create([
                     'user_id' => $request->user()->id,
+                    'order_id' => $order->id,
                     'type' => 'redemption',
                     'points' => -$pointsUsed,
-                    'reference_type' => Order::class,
-                    'reference_id' => $order->id,
+                    'reference' => 'LOY-' . Str::upper(Str::random(18)),
                     'description' => 'Loyalty points redeemed on ' . $order->order_number,
                 ]);
             }
