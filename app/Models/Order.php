@@ -10,14 +10,15 @@ class Order extends Model
 {
     protected $fillable = [
         'user_id', 'order_number', 'status', 'payment_status',
-        'subtotal', 'delivery_fee', 'total', 'customer_name',
-        'customer_email', 'customer_phone', 'delivery_address', 'notes',
+        'subtotal', 'delivery_fee', 'total', 'discount', 'promotion_code',
+        'customer_name', 'customer_email', 'customer_phone', 'delivery_address', 'notes',
     ];
 
     protected $casts = [
         'subtotal' => 'decimal:2',
         'delivery_fee' => 'decimal:2',
         'total' => 'decimal:2',
+        'discount' => 'decimal:2',
     ];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
