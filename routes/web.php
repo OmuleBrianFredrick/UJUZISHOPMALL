@@ -8,6 +8,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SellerController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\UserController;
 
@@ -40,6 +41,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/{order}/pay', [PaymentController::class, 'create'])->name('payments.create');
     Route::post('/orders/{order}/pay', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/orders/{order}/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+
+    Route::get('/sell', [SellerController::class, 'apply'])->name('seller.apply');
+    Route::post('/sell', [SellerController::class, 'store'])->name('seller.apply.store');
+    Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
+
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/analytics', [ProductController::class, 'analytics'])->name('products.analytics');
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
