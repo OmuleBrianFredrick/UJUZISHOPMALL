@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
@@ -50,7 +51,7 @@ class CheckoutController extends Controller
 
             $order = Order::create([
                 'user_id' => $request->user()->id,
-                'order_number' => 'UJM-' . now()->format('YmdHis') . '-' . strtoupper(str()->random(5)),
+                'order_number' => 'UJM-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(5)),
                 'status' => 'confirmed',
                 'payment_status' => 'unpaid',
                 'subtotal' => $subtotal,
@@ -63,6 +64,7 @@ class CheckoutController extends Controller
                 $lineTotal = $product->price * $quantity;
                 $order->items()->create([
                     'product_id' => $product->id,
+                    'seller_id' => $product->seller_id,
                     'product_name' => $product->name,
                     'sku' => $product->sku,
                     'quantity' => $quantity,
