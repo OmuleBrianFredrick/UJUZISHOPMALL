@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminCommerceController;
 use App\Http\Controllers\AdminSellerController;
 use App\Http\Controllers\AdminPayoutController;
 use App\Http\Controllers\AuthController;
@@ -61,6 +62,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/seller/orders', [SellerOrderController::class, 'index'])->name('seller.orders.index');
     Route::get('/seller/orders/{order}', [SellerOrderController::class, 'show'])->name('seller.orders.show');
     Route::patch('/seller/orders/{order}/status', [SellerOrderController::class, 'updateStatus'])->name('seller.orders.status');
+    Route::get('/admin/commerce', [AdminCommerceController::class, 'index'])->name('admin.commerce');
     Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
     Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
     Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
