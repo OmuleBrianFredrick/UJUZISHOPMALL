@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Financial\CommissionService;
+use App\Services\NotificationService;
 use App\Services\Payments\PaymentManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,17 +39,17 @@ class PaymentController extends Controller
         return redirect()->route('payments.show', [$order, $payment])->with('success', 'Payment request sent. Complete the mobile-money prompt to continue.');
     }
 
-    public function callbackMtn(Request $request, PaymentManager $manager, CommissionService $commissionService)
+    public function callbackMtn(Request $request, PaymentManager $manager, CommissionService $commissionService, NotificationService $notifications)
     {
-        return $this->processProviderCallback($request, $manager, $commissionService, 'mtn_momo');
+        return $this->processProviderCallback($request, $manager, $commissionService, $notifications, 'mtn_momo');
     }
 
-    public function callbackAirtel(Request $request, PaymentManager $manager, CommissionService $commissionService)
+    public function callbackAirtel(Request $request, PaymentManager $manager, CommissionService $commissionService, NotificationService $notifications)
     {
-        return $this->processProviderCallback($request, $manager, $commissionService, 'airtel_money');
+        return $this->processProviderCallback($request, $manager, $commissionService, $notifications, 'airtel_money');
     }
 
-    private function processProviderCallback(Request $request, PaymentManager $manager, CommissionService $commissionService, string $method)
+    private function processProviderCallback(Request $request, PaymentManager $manager, CommissionService $commissionService, NotificationService $notifications, string $method)
     {
         $payload = $request->json()->all();
         $normalized = $manager->gateway($method)->handleCallback($payload);
@@ -58,16 +59,19 @@ class PaymentController extends Controller
         if (! $payment) return response()->json(['message' => 'Payment not found'], 404);
         if ($payment->method !== $method) return response()->json(['message' => 'Payment provider mismatch'], 409);
         if (in_array($payment->status, ['successful', 'failed'], true)) return response()->json(['ok' => true]);
-        DB::transaction(function () use ($payment, $normalized, $commissionService) {
+        $order = null;
+        DB::transaction(function () use ($payment, $normalized, $commissionService, &$order) {
             $payment->update(['status' => $normalized['status'], 'failure_reason' => $normalized['failure_reason'] ?? null, 'provider_response' => $normalized['provider_response'] ?? null, 'paid_at' => $normalized['status'] === 'successful' ? now() : null]);
             if ($normalized['status'] === 'successful') {
                 $order = $payment->order()->lockForUpdate()->first();
                 $order->update(['payment_status' => 'paid', 'status' => 'confirmed']);
                 $commissionService->settlePaidOrder($order, $payment);
             } elseif ($normalized['status'] === 'failed') {
-                $payment->order()->update(['payment_status' => 'failed']);
+                $order = $payment->order()->lockForUpdate()->first();
+                $order->update(['payment_status' => 'failed']);
             }
         });
+        if ($order) $notifications->order($order, $normalized['status'] === 'successful' ? 'payment_success' : 'payment_failed');
         return response()->json(['ok' => true]);
     }
 
