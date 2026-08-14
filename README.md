@@ -1,58 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Ujuzi Shop Mall
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Ujuzi Shop Mall is a Laravel-based commerce platform being developed from an inventory-management foundation into a full online marketplace for customers, sellers and administrators.
 
-## About Laravel
+## 🚀 Current platform capabilities
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Storefront
+- Product catalogue
+- Product search
+- Category filtering
+- Product sorting
+- Product detail pages
+- Related products
+- Responsive shopping experience
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Shopping cart
+- Session-based cart
+- Add/remove products
+- Quantity updates
+- Automatic cart totals
+- Stock-aware cart operations
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Orders & checkout — Phase 2
+- Customer checkout form
+- Delivery details
+- Persistent orders and order items
+- Unique order numbers
+- Customer order history
+- Order detail/confirmation pages
+- Transaction-safe stock validation
+- Automatic inventory deduction after order placement
+- Stock-out movement records linked to customer orders
+- Payment status tracking foundation
 
-## Learning Laravel
+### Existing inventory foundation
+- Product management
+- SKU/category/description/price management
+- Stock-in and stock-out workflows
+- Reorder-level monitoring
+- Stock movement history
+- Inventory analytics
+- User management
+- Authentication, OTP and Google authentication support
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🧭 Product roadmap
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Phase | Area | Status |
+|---|---|---|
+| 1 | Storefront + shopping cart | ✅ Implemented |
+| 2 | Checkout + orders + stock deduction | ✅ Implemented |
+| 3 | Payments | 🔜 Next |
+| 4 | Seller / multi-vendor marketplace | Planned |
+| 5 | Admin commerce dashboard | Planned |
+| 6 | Notifications & delivery management | Planned |
+| 7 | Reviews, wishlist, promotions & loyalty | Planned |
+| 8 | Production hardening, testing & deployment | Planned |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## 💳 Next major milestone: payments
 
-## Agentic Development
+The next upgrade will introduce a payment architecture designed for Uganda, with support planned for mobile-money payment flows such as MTN Mobile Money and Airtel Money. Payment callbacks, transaction records, verification and order-payment state transitions will be added without coupling the commerce layer to a single provider.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🏗️ Architecture direction
+
+The platform is intentionally being developed in layers:
+
+**Customer storefront → Cart → Checkout → Order → Payment → Fulfilment**
+
+and on the management side:
+
+**Inventory → Orders → Payments → Sellers → Analytics**
+
+The existing inventory system is being retained as the back office rather than discarded.
+
+## 🛠️ Development notes
+
+After pulling the latest changes, run your normal Laravel setup commands and migrations for the environment. Phase 2 introduces the `orders` and `order_items` tables, so database migrations must be executed before using checkout.
+
+Typical local commands:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+php artisan migrate
+php artisan storage:link
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Use the project's configured `.env` database and application settings. Never commit production credentials or payment-provider secrets.
 
-## Contributing
+## 📝 Upgrade log
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Phase 2 — Checkout & Orders
+**Implemented:**
+- Added `Order` and `OrderItem` models.
+- Added `orders` and `order_items` migrations.
+- Added transactional checkout processing.
+- Added stock locking and stock deduction during order creation.
+- Added stock movement records for customer orders.
+- Added customer order history and order detail pages.
+- Connected the cart directly to checkout.
+- Added responsive checkout/order styling.
 
-## Code of Conduct
+**Important implementation detail:** checkout validates current inventory inside a database transaction and locks the affected products before creating the order and deducting stock. This reduces the risk of overselling when multiple customers attempt to buy the same product.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Phase 1 — Storefront & Cart
+**Implemented:**
+- Added customer product catalogue.
+- Added product search, category filtering and sorting.
+- Added product detail pages and related products.
+- Added session shopping cart.
+- Added cart quantity updates/removal.
+- Added Shop and Cart navigation.
+- Added responsive storefront styling.
 
-## Security Vulnerabilities
+## 🔐 Security
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- Keep secrets in `.env` and outside version control.
+- Validate all customer input server-side.
+- Use authenticated routes for customer commerce operations.
+- Keep payment credentials out of source code.
+- Review authorization rules before exposing administrative order operations.
+
+## 📌 Development principle
+
+Every significant platform upgrade should include:
+1. A focused implementation.
+2. A clear Git commit message.
+3. A GitHub development/comment log where appropriate.
+4. An update to this README.
+5. A review before the next major module begins.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is proprietary unless otherwise stated by its owner. The Laravel framework and its dependencies remain subject to their respective licenses.
