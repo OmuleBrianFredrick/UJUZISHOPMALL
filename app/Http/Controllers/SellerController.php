@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Models\SellerProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -23,7 +24,7 @@ class SellerController extends Controller
             'location' => ['nullable', 'string', 'max:120'],
         ]);
 
-        $profile = SellerProfile::updateOrCreate(
+        SellerProfile::updateOrCreate(
             ['user_id' => $request->user()->id],
             [...$validated, 'slug' => Str::slug($validated['store_name']), 'status' => 'pending']
         );
@@ -36,7 +37,7 @@ class SellerController extends Controller
         $profile = $request->user()->sellerProfile;
         abort_unless($profile && $profile->isApproved(), 403, 'Your seller account is awaiting approval.');
 
-        $products = $request->user()->sellerProducts()->latest()->paginate(12);
+        $products = Product::where('seller_id', $request->user()->id)->latest()->paginate(12);
         return view('seller.dashboard', compact('profile', 'products'));
     }
 }
