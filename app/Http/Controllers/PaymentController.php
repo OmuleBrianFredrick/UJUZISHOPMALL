@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\Payments\PaymentManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,39 +14,23 @@ class PaymentController extends Controller
     public function create(Request $request, Order $order)
     {
         abort_unless($order->user_id === $request->user()->id, 403);
-
-        if ($order->payment_status === 'paid') {
-            return redirect()->route('orders.show', $order);
-        }
-
+        if ($order->payment_status === 'paid') return redirect()->route('orders.show', $order);
         $payment = $order->payments()->whereIn('status', ['pending', 'processing'])->latest()->first();
-
         return view('storefront.payment', compact('order', 'payment'));
     }
 
-    public function store(Request $request, Order $order)
+    public function store(Request $request, Order $order, PaymentManager $manager)
     {
         abort_unless($order->user_id === $request->user()->id, 403);
-
         $validated = $request->validate([
             'method' => ['required', 'in:mtn_momo,airtel_money'],
             'phone' => ['required', 'string', 'max:30'],
         ]);
-
-        if ($order->payment_status === 'paid') {
-            return redirect()->route('orders.show', $order);
-        }
+        if ($order->payment_status === 'paid') return redirect()->route('orders.show', $order);
 
         $payment = DB::transaction(function () use ($order, $validated) {
-            $existing = $order->payments()
-                ->whereIn('status', ['pending', 'processing'])
-                ->lockForUpdate()
-                ->first();
-
-            if ($existing) {
-                return $existing;
-            }
-
+            $existing = $order->payments()->whereIn('status', ['pending', 'processing'])->lockForUpdate()->first();
+            if ($existing) return $existing;
             return $order->payments()->create([
                 'provider' => $validated['method'] === 'mtn_momo' ? 'mtn' : 'airtel',
                 'method' => $validated['method'],
@@ -57,18 +42,45 @@ class PaymentController extends Controller
             ]);
         });
 
-        // Provider initiation is intentionally separated from transaction creation.
-        // Credentials/API calls will be added through concrete gateway adapters in the next payment milestone.
-        $payment->update(['status' => 'processing']);
+        if ($payment->status === 'pending') {
+            $payment = $manager->initiate($order, $payment, $validated['phone']);
+        }
 
         return redirect()->route('payments.show', [$order, $payment])
-            ->with('success', 'Payment request created. Complete the mobile-money prompt to continue.');
+            ->with('success', 'Payment request sent. Complete the mobile-money prompt to continue.');
+    }
+
+    public function callbackMtn(Request $request, PaymentManager $manager)
+    {
+        $payload = $request->json()->all();
+        $providerReference = $payload['referenceId'] ?? $payload['financialTransactionId'] ?? null;
+        if (! $providerReference) return response()->json(['message' => 'Missing payment reference'], 422);
+
+        $payment = Payment::where('provider_reference', $providerReference)->first();
+        if (! $payment) return response()->json(['message' => 'Payment not found'], 404);
+        if (in_array($payment->status, ['successful', 'failed'], true)) return response()->json(['ok' => true]);
+
+        $normalized = $manager->gateway('mtn_momo')->handleCallback($payload);
+        DB::transaction(function () use ($payment, $normalized) {
+            $payment->update([
+                'status' => $normalized['status'],
+                'failure_reason' => $normalized['failure_reason'] ?? null,
+                'provider_response' => $normalized['provider_response'] ?? null,
+                'paid_at' => $normalized['status'] === 'successful' ? now() : null,
+            ]);
+            if ($normalized['status'] === 'successful') {
+                $payment->order()->update(['payment_status' => 'paid', 'status' => 'confirmed']);
+            } elseif ($normalized['status'] === 'failed') {
+                $payment->order()->update(['payment_status' => 'failed']);
+            }
+        });
+
+        return response()->json(['ok' => true]);
     }
 
     public function show(Request $request, Order $order, Payment $payment)
     {
         abort_unless($order->user_id === $request->user()->id && $payment->order_id === $order->id, 403);
-
         return view('storefront.payment-status', compact('order', 'payment'));
     }
 }
