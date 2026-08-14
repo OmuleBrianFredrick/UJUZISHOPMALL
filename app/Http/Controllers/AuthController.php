@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\WelcomeEmail;
 use App\Models\User;
-use App\Mail\WelcomeEmail; // 1. Added WelcomeEmail import
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail; // 2. Added Mail facade import
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
     public function showLogin()
     {
-        return view('auth.login');
+        return view('auth.login-enhanced');
     }
 
     public function login(Request $request)
@@ -23,14 +24,25 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-            return redirect()->intended(route('products.index'));
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            return back()->withErrors(['email' => 'The provided credentials do not match our records.'])->onlyInput('email');
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+        if ($this->requiresStaffOtp($user)) {
+            $request->session()->put([
+                'pending_staff_login_user_id' => $user->id,
+                'pending_staff_login_remember' => $request->boolean('remember'),
+            ]);
+
+            return app(OtpController::class)->requestOtp($request);
+        }
+
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('products.index'));
     }
 
     public function showRegister()
@@ -52,9 +64,7 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        // 3. Trigger the welcome email distribution right after database insertion
         Mail::to($user->email)->send(new WelcomeEmail($user));
-
         Auth::login($user);
 
         return redirect()->route('products.index');
@@ -67,5 +77,10 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('landing');
+    }
+
+    private function requiresStaffOtp(User $user): bool
+    {
+        return in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager'], true);
     }
 }
