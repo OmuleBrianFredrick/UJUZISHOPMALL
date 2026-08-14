@@ -13,7 +13,7 @@ class Product extends Model
     public function stockMovements(): HasMany { return $this->hasMany(StockMovement::class); }
     public function seller(): BelongsTo { return $this->belongsTo(User::class, 'seller_id'); }
     public function orderItems(): HasMany { return $this->hasMany(OrderItem::class); }
-    public function reviews(): HasMany { return $this->hasMany(ProductReview::class); }
+    public function reviews(): HasMany { return $this->hasMany(Review::class); }
     public function approvedReviews(): HasMany { return $this->reviews()->where('status', 'approved'); }
     public function wishlists(): HasMany { return $this->hasMany(Wishlist::class); }
     public function averageRating(): float { return round((float) $this->approvedReviews()->avg('rating'), 1); }
