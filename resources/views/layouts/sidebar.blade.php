@@ -1,20 +1,31 @@
 @php
     $lowStockCount = \App\Models\Product::whereColumn('quantity', '<=', 'reorder_level')->count();
+    $cartCount = collect(session('cart', []))->sum('quantity');
 @endphp
 
 <aside class="sidebar">
     <div class="sidebar-brand">
-        <i class="fa-solid fa-warehouse"></i>
+        <i class="fa-solid fa-store"></i>
         <div>
             <div class="sidebar-brand-name">Ujuzi</div>
             <div class="sidebar-brand-tag">Shop Mall</div>
         </div>
     </div>
 
-    <div class="sidebar-section-label">Workspace</div>
+    <div class="sidebar-section-label">Shopping</div>
     <nav class="sidebar-nav">
-        <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.index') ? 'active' : '' }}">
-            <i class="fa-solid fa-chart-line"></i> Dashboard
+        <a href="{{ route('storefront.index') }}" class="{{ request()->routeIs('storefront.index') ? 'active' : '' }}">
+            <i class="fa-solid fa-bag-shopping"></i> Shop
+        </a>
+        <a href="{{ route('storefront.cart') }}" class="{{ request()->routeIs('storefront.cart*') ? 'active' : '' }}">
+            <i class="fa-solid fa-cart-shopping"></i> Cart <span class="sidebar-count">{{ $cartCount }}</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-section-label">Management</div>
+    <nav class="sidebar-nav">
+        <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.index') || request()->routeIs('products.analytics') ? 'active' : '' }}">
+            <i class="fa-solid fa-chart-line"></i> Inventory
         </a>
         <a href="{{ route('products.create') }}" class="{{ request()->routeIs('products.create') ? 'active' : '' }}">
             <i class="fa-solid fa-plus"></i> Add Product
