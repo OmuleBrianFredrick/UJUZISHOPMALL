@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminSellerController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\OtpController;
@@ -45,6 +46,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/sell', [SellerController::class, 'apply'])->name('seller.apply');
     Route::post('/sell', [SellerController::class, 'store'])->name('seller.apply.store');
     Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
+
+    Route::middleware('admin')->group(function () {
+        Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
+        Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
+        Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
+    });
 
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/analytics', [ProductController::class, 'analytics'])->name('products.analytics');
