@@ -10,6 +10,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\SellerFinanceController;
 use App\Http\Controllers\SellerProductController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\StorefrontController;
@@ -17,7 +18,6 @@ use App\Http\Controllers\UserController;
 
 Route::get('/', function () { return view('landing'); })->name('landing');
 Route::post('/payments/callback/mtn', [PaymentController::class, 'callbackMtn'])->name('payments.callback.mtn');
-
 Route::middleware('guest')->group(function () {
     Route::get('/login', fn () => view('auth.login-enhanced'))->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
@@ -28,7 +28,6 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 });
-
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/shop', [StorefrontController::class, 'index'])->name('storefront.index');
@@ -44,10 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/{order}/pay', [PaymentController::class, 'create'])->name('payments.create');
     Route::post('/orders/{order}/pay', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/orders/{order}/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
-
     Route::get('/sell', [SellerController::class, 'apply'])->name('seller.apply');
     Route::post('/sell', [SellerController::class, 'store'])->name('seller.apply.store');
     Route::get('/seller/dashboard', [SellerController::class, 'dashboard'])->name('seller.dashboard');
+    Route::get('/seller/finance', [SellerFinanceController::class, 'index'])->name('seller.finance.index');
     Route::get('/seller/products', [SellerProductController::class, 'index'])->name('seller.products.index');
     Route::get('/seller/products/create', [SellerProductController::class, 'create'])->name('seller.products.create');
     Route::post('/seller/products', [SellerProductController::class, 'store'])->name('seller.products.store');
@@ -57,12 +56,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/seller/orders', [SellerOrderController::class, 'index'])->name('seller.orders.index');
     Route::get('/seller/orders/{order}', [SellerOrderController::class, 'show'])->name('seller.orders.show');
     Route::patch('/seller/orders/{order}/status', [SellerOrderController::class, 'updateStatus'])->name('seller.orders.status');
-
-    // AdminSellerController performs the role check so this route remains compatible with the current app bootstrap.
     Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
     Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
     Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
-
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/analytics', [ProductController::class, 'analytics'])->name('products.analytics');
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
