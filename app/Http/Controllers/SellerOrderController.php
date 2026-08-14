@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\OrderStatusUpdate;
 use App\Models\Order;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class SellerOrderController extends Controller
@@ -38,18 +37,29 @@ class SellerOrderController extends Controller
     {
         $seller = $this->seller($request);
         abort_unless($order->items()->where('seller_id', $seller->id)->exists(), 403);
-        $validated = $request->validate(['status' => ['required', Rule::in(['processing', 'ready', 'shipped', 'delivered'])]]);
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['processing', 'ready', 'shipped', 'delivered'])],
+        ]);
         $newStatus = $validated['status'];
         $oldStatus = $order->status;
 
-        DB::transaction(function () use ($order, $newStatus) {
-            $order->update(['status' => $newStatus]);
-        });
+        $allowed = [
+            'pending' => ['processing'],
+            'processing' => ['ready'],
+            'ready' => ['shipped'],
+            'shipped' => ['delivered'],
+            'delivered' => [],
+        ];
 
-        if ($oldStatus !== $newStatus && filled($order->customer_email)) {
-            Mail::to($order->customer_email)->send(new OrderStatusUpdate($order->fresh(), $newStatus));
+        abort_unless(in_array($newStatus, $allowed[$oldStatus] ?? [], true), 422, 'Invalid delivery status transition.');
+
+        DB::transaction(fn () => $order->update(['status' => $newStatus]));
+
+        if ($oldStatus !== $newStatus) {
+            app(NotificationService::class)->status($order->fresh(), $newStatus);
         }
 
-        return back()->with('success', 'Order status updated and customer notification sent.');
+        return back()->with('success', 'Order status updated and customer notification queued.');
     }
 }
