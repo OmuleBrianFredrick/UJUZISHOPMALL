@@ -1,0 +1,6 @@
+@extends('layouts.dashboard')
+@section('title','Seller Products')
+@section('content')
+<div class="dashboard-hero"><div><div class="dashboard-kicker">Seller Centre</div><h1 class="dashboard-title">My Products</h1><p class="dashboard-subtitle">Manage your marketplace catalogue and stock.</p></div><a href="{{ route('seller.products.create') }}" class="btn-solid"><i class="fa-solid fa-plus"></i> Add Product</a></div>
+<section class="dashboard-panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Product</th><th>SKU</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead><tbody>@forelse($products as $product)<tr><td>{{ $product->name }}</td><td>{{ $product->sku }}</td><td>UGX {{ number_format($product->price,0) }}</td><td>{{ $product->quantity }}</td><td><a href="{{ route('seller.products.edit',$product) }}">Edit</a> <form method="POST" action="{{ route('seller.products.destroy',$product) }}" style="display:inline">@csrf @method('DELETE') <button type="submit" onclick="return confirm('Remove this product?')">Delete</button></form></td></tr>@empty<tr><td colspan="5">No products yet.</td></tr>@endforelse</tbody></table></div>{{ $products->links() }}</section>
+@endsection
