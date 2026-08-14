@@ -12,12 +12,12 @@ class NotificationService
 {
     public function order(Order $order, string $type): void
     {
-        $this->send($order, $type, fn () => new OrderNotification($order->fresh(), $type));
+        $this->send($order, $type, fn (int $logId) => new OrderNotification($order->fresh(), $type, $logId));
     }
 
     public function status(Order $order, string $status): void
     {
-        $this->send($order, 'order_status_'.$status, fn () => new OrderStatusUpdate($order->fresh(), $status));
+        $this->send($order, 'order_status_'.$status, fn (int $logId) => new OrderStatusUpdate($order->fresh(), $status, $logId));
     }
 
     private function send(Order $order, string $type, callable $mailable): void
@@ -35,8 +35,7 @@ class NotificationService
         ]);
 
         try {
-            Mail::to($recipient)->queue($mailable());
-            $log->update(['status' => 'queued']);
+            Mail::to($recipient)->queue($mailable($log->id));
         } catch (\Throwable $e) {
             $log->update(['status' => 'failed', 'failure_reason' => $e->getMessage()]);
             report($e);
