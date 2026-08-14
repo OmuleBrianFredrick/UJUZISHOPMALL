@@ -18,6 +18,7 @@ use App\Http\Controllers\UserController;
 
 Route::get('/', function () { return view('landing'); })->name('landing');
 Route::post('/payments/callback/mtn', [PaymentController::class, 'callbackMtn'])->name('payments.callback.mtn');
+Route::post('/payments/callback/airtel', [PaymentController::class, 'callbackAirtel'])->name('payments.callback.airtel');
 Route::middleware('guest')->group(function () {
     Route::get('/login', fn () => view('auth.login-enhanced'))->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
