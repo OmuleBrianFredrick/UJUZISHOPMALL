@@ -1,6 +1,6 @@
 # Ujuzi Shop Mall
 
-Ujuzi Shop Mall is a Laravel-based commerce platform being developed from an inventory-management foundation into a full online marketplace for customers, sellers and administrators.
+Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an inventory-management foundation into a full online marketplace for customers, sellers and administrators.
 
 ## 🚀 Current platform capabilities
 
@@ -35,6 +35,16 @@ Ujuzi Shop Mall is a Laravel-based commerce platform being developed from an inv
 - Payment status screen and protected customer payment routes
 - Duplicate pending/processing payment protection
 
+### Marketplace — Phase 5 foundation
+- Customer-to-seller application flow
+- Seller profile/store records
+- Pending/approved/rejected seller lifecycle
+- Admin seller approval and rejection workflow
+- Seller-only dashboard scoped to seller-owned products
+- Product ownership via `seller_id`
+- Seller attribution retained on order items
+- Customer, seller and admin role field foundation
+
 ### Existing inventory foundation
 - Product management
 - SKU/category/description/price management
@@ -52,13 +62,14 @@ Ujuzi Shop Mall is a Laravel-based commerce platform being developed from an inv
 | 1 | Storefront + shopping cart | ✅ Implemented |
 | 2 | Checkout + orders + stock deduction | ✅ Implemented |
 | 3 | Payment architecture + mobile-money foundation | ✅ Implemented |
-| 4 | MTN MoMo adapter + callback foundation | 🟡 In progress |
-| 5 | Airtel Money provider adapter + callback verification | 🔜 Next |
-| 6 | Seller / multi-vendor marketplace | Planned |
-| 7 | Admin commerce dashboard | Planned |
-| 8 | Notifications & delivery management | Planned |
-| 9 | Reviews, wishlist, promotions & loyalty | Planned |
-| 10 | Production hardening, testing & deployment | Planned |
+| 4 | MTN MoMo adapter + callback foundation | 🟡 Foundation implemented |
+| 5 | Seller / multi-vendor marketplace foundation | 🟡 In progress |
+| 6 | Seller product management + seller order views | 🔜 Next |
+| 7 | Airtel Money adapter + callback verification | Planned |
+| 8 | Admin commerce dashboard + commissions | Planned |
+| 9 | Notifications & delivery management | Planned |
+| 10 | Reviews, wishlist, promotions & loyalty | Planned |
+| 11 | Production hardening, testing & deployment | Planned |
 
 ## 💳 Payment architecture
 
@@ -70,7 +81,7 @@ The live flow is designed as:
 
 ### MTN MoMo
 
-The repository now contains an MTN Collections adapter. Its default sandbox base URL, subscription key, API user and API key are supplied through environment configuration. MTN's official documentation describes RequestToPay as asynchronous: a successful request returns `202 Accepted`, the transaction is processed asynchronously, and the final result is delivered through a callback; MTN also recommends status polling as a fallback because callbacks may not be retried. citeturn0search0turn0search1
+The repository contains an MTN Collections adapter. Its default sandbox base URL, subscription key, API user and API key are supplied through environment configuration. MTN documents RequestToPay as asynchronous: a successful request returns `202 Accepted`, the transaction is processed asynchronously, and the final result is delivered through a callback; MTN also recommends status polling as a fallback because callbacks may not be retried. citeturn0search0turn0search1
 
 Required environment variables:
 
@@ -82,21 +93,31 @@ MTN_MOMO_API_KEY=
 MTN_MOMO_TARGET_ENVIRONMENT=sandbox
 ```
 
-Do not put real credentials into GitHub. The MTN developer portal requires a product subscription and provisioned API credentials before API use. citeturn0search8turn0search10
+Do not put real credentials into GitHub. MTN's developer portal requires product subscription and provisioned API credentials before API use. citeturn0search8turn0search10
 
 ### Airtel Money
 
-Airtel remains intentionally behind the provider contract until its exact production/sandbox API credentials, endpoints and callback requirements are configured for the merchant account. The checkout layer already isolates provider selection so Airtel can be added without rewriting orders or inventory.
+Airtel remains behind the provider contract until the exact merchant API endpoints, credentials and callback requirements are configured. Checkout is already provider-isolated so Airtel can be added without rewriting orders or inventory.
 
-## 🏗️ Architecture direction
+## 🏪 Marketplace architecture
+
+The marketplace now has the core ownership model:
+
+**Customer → Order → Order Item → Product → Seller**
+
+A seller first submits a store application. An administrator approves or rejects the application. Only an approved seller is allowed into the seller dashboard. Product ownership is represented by `products.seller_id`, while `order_items.seller_id` preserves seller attribution at purchase time.
+
+The current seller milestone deliberately stops before seller product CRUD, seller order management, commissions and payouts. Those are the next marketplace layer.
+
+## 🏗️ Overall architecture direction
 
 **Customer storefront → Cart → Checkout → Order → Payment → Fulfilment**
 
-Management side:
+**Seller → Store → Products → Inventory → Orders → Earnings**
 
-**Inventory → Orders → Payments → Sellers → Analytics**
+**Admin → Users → Seller approval → Products → Orders → Payments → Commissions → Analytics**
 
-The existing inventory system is retained as the back office rather than discarded.
+The existing inventory system is retained as the operational back office rather than discarded.
 
 ## 🛠️ Development notes
 
@@ -120,21 +141,24 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 
 ## 📝 Upgrade log
 
-### Phase 4 — MTN MoMo Provider Adapter & Callback Foundation
+### Phase 5 — Multi-Vendor Marketplace Foundation
 **Implemented:**
-- Added `MtnMomoGateway` implementing the platform `PaymentGateway` contract.
-- Added MTN OAuth/token acquisition using environment credentials.
-- Added MTN Collections RequestToPay initiation.
-- Added Uganda MSISDN normalization for customer phone numbers.
-- Added callback URL registration in the RequestToPay request.
-- Added provider reference storage.
-- Added MTN callback normalization into the platform payment lifecycle.
-- Added idempotent callback behavior for already-finalized payments.
-- Added automatic order transition to `paid/confirmed` only after a successful callback.
-- Added environment-backed MTN configuration.
-- Added public callback route separate from authenticated customer routes.
+- Added marketplace role field foundation to users.
+- Added `seller_profiles` table with store identity and approval state.
+- Added seller application flow.
+- Added seller approval/rejection workflow for administrators.
+- Added seller dashboard scoped to the authenticated seller's products.
+- Added `seller_id` ownership to products.
+- Added `seller_id` attribution to order items so seller ownership survives checkout.
+- Added seller-facing application and dashboard UI.
 
-**Important implementation detail:** the adapter is configured for MTN's documented asynchronous RequestToPay model. The repository does not contain merchant credentials. A production deployment must use the merchant's actual MTN subscription/API credentials and HTTPS callback host.
+**Boundary:** seller product CRUD, seller order views, commissions, payouts and seller analytics are intentionally separate next milestones. This prevents the first seller migration from coupling all marketplace concerns into one change.
+
+### Phase 4 — MTN MoMo Provider Adapter & Callback Foundation
+- Added MTN Collections adapter and environment-backed configuration.
+- Added RequestToPay initiation and provider reference storage.
+- Added public callback route and idempotent callback processing.
+- Added automatic paid/confirmed order transition only after successful provider result.
 
 ### Phase 3 — Payment Architecture & Mobile-Money Foundation
 - Added `payments` table and `Payment` model.
@@ -163,9 +187,10 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Validate all customer input server-side.
 - Verify payment callbacks/server responses before marking orders paid.
 - Make callback processing idempotent.
-- Prefer provider status verification/polling as a fallback where the provider documents it.
+- Prefer provider status verification/polling as a fallback where documented.
 - Use HTTPS for production payment callbacks.
-- Review authorization rules before exposing administrative order/payment operations.
+- Enforce seller ownership on every seller product/order operation.
+- Keep administrative seller approval behind authenticated role checks.
 
 ## 📌 Development principle
 
