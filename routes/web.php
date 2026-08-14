@@ -25,6 +25,7 @@ Route::post('/payments/callback/airtel', [PaymentController::class, 'callbackAir
 Route::middleware('guest')->group(function () {
     Route::get('/login', fn () => view('auth.login-enhanced'))->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+    Route::get('/login/otp', [OtpController::class, 'challenge'])->name('login.otp.challenge');
     Route::post('/login/otp/request', [OtpController::class, 'requestOtp'])->name('login.otp.request');
     Route::post('/login/otp/verify', [OtpController::class, 'verify'])->name('login.otp.verify');
     Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
