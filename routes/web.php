@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\UserController;
 
 Route::get('/', function () { return view('landing'); })->name('landing');
@@ -22,6 +23,14 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::get('/shop', [StorefrontController::class, 'index'])->name('storefront.index');
+    Route::get('/shop/product/{product}', [StorefrontController::class, 'show'])->name('storefront.show');
+    Route::post('/shop/cart/add/{product}', [StorefrontController::class, 'addToCart'])->name('storefront.cart.add');
+    Route::get('/shop/cart', [StorefrontController::class, 'cart'])->name('storefront.cart');
+    Route::post('/shop/cart', [StorefrontController::class, 'updateCart'])->name('storefront.cart.update');
+    Route::delete('/shop/cart/{product}', [StorefrontController::class, 'removeFromCart'])->name('storefront.cart.remove');
+
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/analytics', [ProductController::class, 'analytics'])->name('products.analytics');
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
