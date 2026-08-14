@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    private const STATUSES = ['confirmed', 'processing', 'ready', 'shipped', 'delivered'];
+
     public function index(Request $request)
     {
         $orders = $request->user()->orders()->with('items')->latest()->paginate(10);
@@ -17,6 +19,13 @@ class OrderController extends Controller
     {
         abort_unless($order->user_id === $request->user()->id, 403);
         $order->load('items.product');
-        return view('storefront.order-show', compact('order'));
+        $statusIndex = array_search($order->status, self::STATUSES, true);
+        $timeline = collect(self::STATUSES)->map(fn ($status, $index) => [
+            'status' => $status,
+            'label' => ucfirst($status),
+            'complete' => $statusIndex !== false && $index <= $statusIndex,
+            'current' => $status === $order->status,
+        ]);
+        return view('storefront.order-show', compact('order', 'timeline'));
     }
 }
