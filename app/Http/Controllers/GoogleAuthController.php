@@ -15,17 +15,11 @@ class GoogleAuthController extends Controller
     {
         $config = config('auth_services.google');
         abort_if(empty($config['client_id']) || empty($config['client_secret']), 503, 'Google sign-in is not configured yet.');
-
         $state = Str::random(40);
         $request->session()->put('google_oauth_state', $state);
-
         return redirect('https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
-            'client_id' => $config['client_id'],
-            'redirect_uri' => $config['redirect_uri'],
-            'response_type' => 'code',
-            'scope' => 'openid email profile',
-            'state' => $state,
-            'prompt' => 'select_account',
+            'client_id' => $config['client_id'], 'redirect_uri' => $config['redirect_uri'], 'response_type' => 'code',
+            'scope' => 'openid email profile', 'state' => $state, 'prompt' => 'select_account',
         ]));
     }
 
@@ -33,20 +27,14 @@ class GoogleAuthController extends Controller
     {
         abort_unless($request->filled('code'), 422, 'Google did not return an authorization code.');
         abort_unless(hash_equals((string) $request->session()->pull('google_oauth_state'), (string) $request->string('state')), 419, 'Invalid Google authentication state.');
-
         $config = config('auth_services.google');
         $token = Http::asForm()->post('https://oauth2.googleapis.com/token', [
-            'client_id' => $config['client_id'],
-            'client_secret' => $config['client_secret'],
-            'code' => $request->string('code'),
-            'grant_type' => 'authorization_code',
-            'redirect_uri' => $config['redirect_uri'],
+            'client_id' => $config['client_id'], 'client_secret' => $config['client_secret'], 'code' => $request->string('code'),
+            'grant_type' => 'authorization_code', 'redirect_uri' => $config['redirect_uri'],
         ]);
         abort_unless($token->successful(), 422, 'Google token exchange failed.');
-
         $profile = Http::withToken($token->json('access_token'))->get('https://openidconnect.googleapis.com/v1/userinfo');
         abort_unless($profile->successful(), 422, 'Google profile lookup failed.');
-
         $data = $profile->json();
         abort_if(empty($data['sub']) || empty($data['email']), 422, 'Google did not return the required account information.');
 
@@ -57,14 +45,17 @@ class GoogleAuthController extends Controller
             $user->email = $data['email'];
             $user->password = Hash::make(Str::random(64));
         }
-
         $user->google_id = $data['sub'];
         $user->email_verified_at = $user->email_verified_at ?? now();
         $user->save();
 
+        if (in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager'], true)) {
+            $request->session()->put(['pending_staff_login_user_id' => $user->id, 'pending_staff_login_remember' => true]);
+            return app(OtpController::class)->requestOtp($request);
+        }
+
         Auth::login($user, true);
         $request->session()->regenerate();
-
         return redirect()->intended(route('products.index'));
     }
 }
