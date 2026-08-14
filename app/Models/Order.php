@@ -11,7 +11,7 @@ class Order extends Model
     protected $fillable = [
         'user_id', 'order_number', 'status', 'payment_status',
         'subtotal', 'delivery_fee', 'total', 'customer_name',
-        'customer_phone', 'delivery_address', 'notes',
+        'customer_email', 'customer_phone', 'delivery_address', 'notes',
     ];
 
     protected $casts = [
@@ -20,23 +20,8 @@ class Order extends Model
         'total' => 'decimal:2',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function items(): HasMany
-    {
-        return $this->hasMany(OrderItem::class);
-    }
-
-    public function payments(): HasMany
-    {
-        return $this->hasMany(Payment::class);
-    }
-
-    public function isCancellable(): bool
-    {
-        return in_array($this->status, ['pending', 'confirmed'], true);
-    }
+    public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function items(): HasMany { return $this->hasMany(OrderItem::class); }
+    public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function isCancellable(): bool { return in_array($this->status, ['pending', 'confirmed'], true); }
 }
