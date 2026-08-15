@@ -14,25 +14,17 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 
 ### Customer engagement — Phase 12 — COMPLETE
 - Customer wishlist with duplicate protection and storefront add/remove/cart actions
-- Verified-purchase product reviews
+- Verified-purchase product reviews and moderation
 - 1–5 star product ratings
-- Review moderation with pending/approved/rejected states
-- Admin review moderation screen
-- Product average-rating helpers
-- Fixed and percentage promotions
-- Promotion validity rules: active window, minimum order and usage limit
+- Fixed and percentage promotions with validity/usage controls
 - Admin promotion creation and activation/pause interface
-- Purchase-based loyalty ledger
-- Idempotent loyalty points awarded when an order is delivered
-- Customer loyalty balance/history
-- Checkout promotion-code and loyalty-redemption controls
-- Dedicated Phase 12 migration for wishlist, reviews, promotions and loyalty transaction tables
+- Purchase-based loyalty ledger and idempotent delivered-order awards
+- Customer loyalty balance/history and checkout redemption
 
-### Customer notifications & delivery — Phase 11
-- Order confirmation, payment and fulfilment notifications
+### Customer notifications & delivery — Phase 11 — COMPLETE
+- Order, payment and fulfilment notifications
 - Queued mail delivery and notification audit logging
-- Delivery-specific customer messages
-- Customer delivery timeline: confirmed → processing → ready → shipped → delivered
+- Delivery timeline: confirmed → processing → ready → shipped → delivered
 - Sequential seller delivery transitions
 
 ### Shopping cart / Orders / Payments
@@ -41,10 +33,9 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 - Transaction-safe inventory deduction
 - MTN Mobile Money and Airtel Money architecture
 - Provider-neutral payment callbacks and settlement
-- Payment lifecycle and protected customer payment routes
 
 ### Marketplace & seller finance
-- Seller application, approval and rejection workflow
+- Seller application, approval/rejection workflow
 - Seller-owned product/order management
 - Seller financial ledger and commission settlement
 - Seller payout requests and admin payout workflow
@@ -71,65 +62,45 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 10A | Staff email OTP security | 🟢 Implemented |
 | 11 | Customer notifications + delivery management | 🟢 Implemented |
 | 12 | Reviews, wishlist, promotions & loyalty | 🟢 **COMPLETE** |
-| 13 | Production hardening, testing & deployment | 🔵 Next |
+| 13A | Production configuration & readiness tooling | 🟢 Implemented |
+| 13B | Automated regression/CI hardening | 🟡 In progress |
+| 13C | Deployment, backups, monitoring & release runbook | 🔵 Next |
 
 ## 🔐 Authentication rule
 Customers authenticate normally. Privileged inventory managers and administrators use:
 
 **Email + Password → Password Verified → Email OTP → Authenticated Staff Session**
 
-## ⭐ Reviews
-Reviews are linked to a delivered order containing the reviewed product. Customers submit 1–5 star feedback; submissions enter moderation before appearing publicly.
+## 🗄️ Database schema
+Phase 12 includes a defensive migration for `wishlists`, `reviews`, `promotions` and `loyalty_transactions`. It is guarded with `Schema::hasTable()` because portions of the commerce database were previously created locally/SQL-first. When synchronizing an existing local database, inspect the current schema before running migrations.
 
-## ❤️ Wishlist
-Wishlist entries are uniquely constrained by customer + product. Customers can remove saved products or add available products directly to the cart.
+## 🧪 CI & production readiness
+GitHub Actions runs migrations and the automated test suite on pushes and pull requests targeting `main` using PHP 8.2 and SQLite.
 
-## 🎟️ Promotions
-Promotions support percentage/fixed discounts, minimum order amounts, start/end dates, usage limits and activation state. Discount calculations are recomputed server-side.
-
-## 🏆 Loyalty
-Delivered orders can award points through a transaction ledger. The base earning rule is **1 point per UGX 1,000 of delivered-order value**. Awarding is idempotent, and checkout redemption is validated transactionally.
-
-## 🗄️ Phase 12 database schema
-The repository now includes a defensive Phase 12 migration creating these tables when absent:
-
-- `wishlists` — customer/product unique pair with foreign keys.
-- `reviews` — customer/product review, rating, moderation status and verified-purchase flag.
-- `promotions` — discount code, type, value, validity window, usage controls and active state.
-- `loyalty_transactions` — immutable-ish points ledger linked to customers and optionally orders.
-
-This migration is deliberately guarded with `Schema::hasTable()` because the project previously had portions of the commerce schema created locally and pushed directly to SQL. When synchronizing a local environment, run the normal Laravel migration process and reconcile any already-existing tables rather than blindly recreating them.
-
-## 🧪 CI
-GitHub Actions now runs Laravel migrations and the automated test suite on pushes and pull requests targeting `main` using PHP 8.2 and SQLite.
-
-## 🛠️ Development
+A production readiness command is available:
 
 ```bash
-composer install
-php artisan migrate
-php artisan storage:link
-php artisan serve
+php artisan app:production-readiness
 ```
 
-For queued email notifications, production must run a queue worker appropriate to the configured queue driver.
+It checks the application key, debug configuration and critical session/cache/Phase 12 tables. Production deployments should run this check after environment configuration and migrations.
 
-Never commit production credentials, API keys, signing secrets or payment-provider tokens.
+For production, use `APP_DEBUG=false`, HTTPS, secure HTTP-only cookies, a persistent queue worker and a real cache/session backend appropriate to the deployment scale.
 
 ## 📝 Upgrade log
 
+### Phase 13A — Production Configuration & Readiness Tooling — IMPLEMENTED
+- Added a production-readiness Artisan command.
+- Added schema prerequisite checks for Phase 12 commerce tables.
+- Added production configuration checks for application key and debug mode.
+- Added a Phase 13 database smoke test.
+- Added CI migration/test execution for deployment confidence.
+
 ### Phase 12 — Reviews, Wishlist, Promotions & Loyalty — COMPLETE
-- Implemented wishlist storefront experience and database protection.
-- Implemented verified-purchase review workflow and moderation.
-- Implemented product ratings and approved-review presentation.
-- Implemented admin promotion creation, activation and pausing.
-- Implemented promotion validation and server-side discount rules.
-- Implemented loyalty transaction ledger, delivered-order awarding and checkout redemption.
-- Implemented customer checkout identity, promotion and loyalty controls.
-- Added reconciled Phase 12 database migration for missing/local-first tables.
-- Added regression coverage for promotion business rules.
-- Added GitHub Actions CI for migrations and automated tests.
-- Updated documentation and roadmap to reflect Phase 12 completion.
+- Implemented wishlist, verified-purchase reviews, ratings and moderation.
+- Implemented promotions and admin campaign management.
+- Implemented loyalty ledger, delivered-order awarding and checkout redemption.
+- Added reconciled Phase 12 database migration and regression tests.
 
 ### Phase 11 — Customer Notifications & Delivery Management — COMPLETE
 - Added transactional customer notifications, queue/audit handling and delivery timeline.
@@ -137,14 +108,13 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 ### Phase 10A — Staff Email OTP Security — COMPLETE
 - Restricted mandatory OTP to privileged staff while keeping customers outside the OTP flow.
 
-### Phase 10 — Admin Commerce Command Centre — COMPLETE
-- Added centralized commerce KPIs and operational reporting.
-
-### Phases 1–9 — COMPLETE
-- Storefront, checkout, payments, marketplace, seller finance, payment adapters and payouts implemented.
+### Phases 1–10 — COMPLETE
+- Storefront, checkout, payments, marketplace, seller finance, payouts and admin commerce implemented.
 
 ## 🔒 Security principles
 - Keep secrets in `.env` and outside version control.
+- Use `APP_DEBUG=false` in production.
+- Enforce HTTPS and secure HTTP-only session cookies in production.
 - Validate all customer input server-side.
 - Verify payment callbacks before marking orders paid.
 - Make payment and financial settlement idempotent.
@@ -152,6 +122,7 @@ Never commit production credentials, API keys, signing secrets or payment-provid
 - Never trust client-side discount calculations.
 - Only permit verified purchasers to review delivered products.
 - Keep financial and loyalty ledgers auditable.
+- Back up the production database and test restoration before launch.
 
 ## 📌 Development principle
 Every significant platform upgrade includes:
