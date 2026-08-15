@@ -64,7 +64,7 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 12 | Reviews, wishlist, promotions & loyalty | 🟢 **COMPLETE** |
 | 13A | Production configuration & readiness tooling | 🟢 Implemented |
 | 13B | Automated regression/CI hardening | 🟢 Implemented |
-| 13C | Deployment, backups, monitoring & release operations | 🟡 In progress |
+| 13C | Final repository audit & production release gate | 🟡 In progress |
 
 ## 🔐 Authentication rule
 Customers authenticate normally. Privileged inventory managers and administrators use:
@@ -92,23 +92,17 @@ php artisan app:production-readiness
 A deployment should not be considered ready until migrations, the readiness command, automated tests and `/health` all pass.
 
 ## 🧪 CI & production readiness
-GitHub Actions runs migrations and the automated test suite on pushes and pull requests targeting `main` using PHP 8.2 and SQLite.
+GitHub Actions uses **PHP 8.3**, matching the repository's `composer.json` requirement and Laravel 13 runtime. It runs dependency validation, migrations and the automated test suite on pushes and pull requests targeting `main`.
 
 Production logging defaults to a rotating daily log channel with configurable retention. Set `LOG_LEVEL`, `LOG_DAILY_DAYS`, `LOG_CHANNEL` and `LOG_STACK` through environment configuration rather than committing environment-specific secrets.
 
 For production, use `APP_DEBUG=false`, HTTPS, secure HTTP-only cookies, a persistent queue worker and a real cache/session backend appropriate to the deployment scale.
 
 ## 🚀 Production operations
-The repository contains `docs/PRODUCTION_RUNBOOK.md`, covering:
+The repository contains:
 
-- Pre-release environment validation
-- Database migration and backup strategy
-- Queue workers and scheduler
-- Health/readiness checks
-- Deployment smoke tests
-- Rollback principles
-- Backup restoration drills
-- Incident evidence and sensitive-data logging rules
+- `docs/PRODUCTION_RUNBOOK.md` — deployment, recovery and operational procedure.
+- `docs/PRODUCTION_CHECKLIST.md` — release gate checklist covering environment, database, application, workers, observability and recovery.
 
 Recommended release sequence:
 
@@ -116,12 +110,18 @@ Recommended release sequence:
 
 ## 📝 Upgrade log
 
-### Phase 13C — Production Operations — IN PROGRESS
+### Phase 13 — Final Repository Audit & Production Release Gate — IN PROGRESS
+- Audited the repository's declared PHP/Laravel runtime against CI.
+- Found and corrected a PHP runtime mismatch: `composer.json` requires PHP `^8.3`, while CI had been configured for PHP 8.2.
+- Added a final production release checklist.
+- Reconciled the README with the actual CI/runtime requirement.
+- CI execution remains the final external verification gate; GitHub Actions currently fails before recording workflow steps.
+
+### Phase 13C — Production Operations
 - Added public database-backed `/health` endpoint.
 - Added health endpoint regression coverage.
 - Added production deployment/recovery runbook.
 - Hardened production logging defaults with daily rotation and configurable retention.
-- Kept logging configuration environment-driven for deployment-specific observability.
 
 ### Phase 13B — Automated Regression & Security Hardening — COMPLETE
 - Added staff OTP/customer authentication regression coverage.
