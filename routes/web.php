@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\AdminCommerceController;
 use App\Http\Controllers\AdminSellerController;
 use App\Http\Controllers\AdminPayoutController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\LoyaltyController;
 
+Route::get('/health', HealthController::class)->name('health');
 Route::get('/', function () { return view('landing'); })->name('landing');
 Route::post('/payments/callback/mtn', [PaymentController::class, 'callbackMtn'])->name('payments.callback.mtn');
 Route::post('/payments/callback/airtel', [PaymentController::class, 'callbackAirtel'])->name('payments.callback.airtel');
