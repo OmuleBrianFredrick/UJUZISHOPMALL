@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminCommerceController;
 use App\Http\Controllers\AdminSellerController;
 use App\Http\Controllers\AdminPayoutController;
 use App\Http\Controllers\AdminPromotionController;
+use App\Http\Controllers\AdminReviewController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\OtpController;
@@ -77,6 +78,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/promotions', [AdminPromotionController::class, 'index'])->name('admin.promotions.index');
     Route::post('/admin/promotions', [AdminPromotionController::class, 'store'])->name('admin.promotions.store');
     Route::patch('/admin/promotions/{promotion}/toggle', [AdminPromotionController::class, 'toggle'])->name('admin.promotions.toggle');
+    Route::get('/admin/reviews', [AdminReviewController::class, 'index'])->name('admin.reviews.index');
+    Route::patch('/admin/reviews/{review}', [AdminReviewController::class, 'update'])->name('admin.reviews.update');
     Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
     Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
     Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
