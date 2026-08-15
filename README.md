@@ -63,8 +63,8 @@ Ujuzi Shop Mall is a Laravel 13 commerce platform being developed from an invent
 | 11 | Customer notifications + delivery management | 🟢 Implemented |
 | 12 | Reviews, wishlist, promotions & loyalty | 🟢 **COMPLETE** |
 | 13A | Production configuration & readiness tooling | 🟢 Implemented |
-| 13B | Automated regression/CI hardening | 🟡 In progress |
-| 13C | Deployment, backups, monitoring & release runbook | 🔵 Next |
+| 13B | Automated regression/CI hardening | 🟢 Implemented |
+| 13C | Deployment, backups, monitoring & release operations | 🟡 In progress |
 
 ## 🔐 Authentication rule
 Customers authenticate normally. Privileged inventory managers and administrators use:
@@ -74,27 +74,69 @@ Customers authenticate normally. Privileged inventory managers and administrator
 ## 🗄️ Database schema
 Phase 12 includes a defensive migration for `wishlists`, `reviews`, `promotions` and `loyalty_transactions`. It is guarded with `Schema::hasTable()` because portions of the commerce database were previously created locally/SQL-first. When synchronizing an existing local database, inspect the current schema before running migrations.
 
-## 🧪 CI & production readiness
-GitHub Actions runs migrations and the automated test suite on pushes and pull requests targeting `main` using PHP 8.2 and SQLite.
+## 🏥 Health & readiness
+The application exposes a lightweight public health endpoint:
 
-A production readiness command is available:
+```text
+GET /health
+```
+
+It verifies database connectivity and returns HTTP 200 when healthy or HTTP 503 when the database check fails.
+
+The production readiness command checks critical environment and schema prerequisites:
 
 ```bash
 php artisan app:production-readiness
 ```
 
-It checks the application key, debug configuration and critical session/cache/Phase 12 tables. Production deployments should run this check after environment configuration and migrations.
+A deployment should not be considered ready until migrations, the readiness command, automated tests and `/health` all pass.
+
+## 🧪 CI & production readiness
+GitHub Actions runs migrations and the automated test suite on pushes and pull requests targeting `main` using PHP 8.2 and SQLite.
+
+Production logging defaults to a rotating daily log channel with configurable retention. Set `LOG_LEVEL`, `LOG_DAILY_DAYS`, `LOG_CHANNEL` and `LOG_STACK` through environment configuration rather than committing environment-specific secrets.
 
 For production, use `APP_DEBUG=false`, HTTPS, secure HTTP-only cookies, a persistent queue worker and a real cache/session backend appropriate to the deployment scale.
 
+## 🚀 Production operations
+The repository contains `docs/PRODUCTION_RUNBOOK.md`, covering:
+
+- Pre-release environment validation
+- Database migration and backup strategy
+- Queue workers and scheduler
+- Health/readiness checks
+- Deployment smoke tests
+- Rollback principles
+- Backup restoration drills
+- Incident evidence and sensitive-data logging rules
+
+Recommended release sequence:
+
+**Backup → migrate → readiness check → tests → health check → workers → smoke test → monitor.**
+
 ## 📝 Upgrade log
 
-### Phase 13A — Production Configuration & Readiness Tooling — IMPLEMENTED
-- Added a production-readiness Artisan command.
-- Added schema prerequisite checks for Phase 12 commerce tables.
-- Added production configuration checks for application key and debug mode.
-- Added a Phase 13 database smoke test.
-- Added CI migration/test execution for deployment confidence.
+### Phase 13C — Production Operations — IN PROGRESS
+- Added public database-backed `/health` endpoint.
+- Added health endpoint regression coverage.
+- Added production deployment/recovery runbook.
+- Hardened production logging defaults with daily rotation and configurable retention.
+- Kept logging configuration environment-driven for deployment-specific observability.
+
+### Phase 13B — Automated Regression & Security Hardening — COMPLETE
+- Added staff OTP/customer authentication regression coverage.
+- Added admin authorization regression coverage.
+- Added order ownership tests.
+- Added payment ownership test.
+- Added seller authorization tests.
+- Added checkout failure-path tests for stock, loyalty and promotions.
+- Added Phase 12 schema smoke coverage.
+- Added GitHub Actions migration/test execution.
+
+### Phase 13A — Production Configuration & Readiness Tooling — COMPLETE
+- Added production-readiness Artisan command.
+- Added schema prerequisite checks.
+- Added production application-key and debug checks.
 
 ### Phase 12 — Reviews, Wishlist, Promotions & Loyalty — COMPLETE
 - Implemented wishlist, verified-purchase reviews, ratings and moderation.
@@ -122,6 +164,7 @@ For production, use `APP_DEBUG=false`, HTTPS, secure HTTP-only cookies, a persis
 - Never trust client-side discount calculations.
 - Only permit verified purchasers to review delivered products.
 - Keep financial and loyalty ledgers auditable.
+- Never log passwords, OTP values, API secrets or payment credentials.
 - Back up the production database and test restoration before launch.
 
 ## 📌 Development principle
