@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminCommerceController;
 use App\Http\Controllers\AdminSellerController;
 use App\Http\Controllers\AdminPayoutController;
+use App\Http\Controllers\AdminPromotionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\OtpController;
@@ -47,7 +48,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/shop/cart/{product}', [StorefrontController::class, 'removeFromCart'])->name('storefront.cart.remove');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
     Route::post('/wishlist/{product}/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
-    Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('products.reviews.store');
+    Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
     Route::get('/loyalty', [LoyaltyController::class, 'index'])->name('loyalty.index');
     Route::post('/promotions/validate', [PromotionController::class, 'validateCode'])->name('promotions.validate');
     Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout');
@@ -73,6 +74,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/seller/orders/{order}', [SellerOrderController::class, 'show'])->name('seller.orders.show');
     Route::patch('/seller/orders/{order}/status', [SellerOrderController::class, 'updateStatus'])->name('seller.orders.status');
     Route::get('/admin/commerce', [AdminCommerceController::class, 'index'])->name('admin.commerce');
+    Route::get('/admin/promotions', [AdminPromotionController::class, 'index'])->name('admin.promotions.index');
+    Route::post('/admin/promotions', [AdminPromotionController::class, 'store'])->name('admin.promotions.store');
+    Route::patch('/admin/promotions/{promotion}/toggle', [AdminPromotionController::class, 'toggle'])->name('admin.promotions.toggle');
     Route::get('/admin/sellers', [AdminSellerController::class, 'index'])->name('admin.sellers.index');
     Route::patch('/admin/sellers/{sellerProfile}/approve', [AdminSellerController::class, 'approve'])->name('admin.sellers.approve');
     Route::patch('/admin/sellers/{sellerProfile}/reject', [AdminSellerController::class, 'reject'])->name('admin.sellers.reject');
