@@ -49,7 +49,7 @@ class GoogleAuthController extends Controller
         $user->email_verified_at = $user->email_verified_at ?? now();
         $user->save();
 
-        if (in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager'], true)) {
+        if (in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager', 'seller'], true)) {
             $request->session()->put(['pending_staff_login_user_id' => $user->id, 'pending_staff_login_remember' => true]);
             return app(OtpController::class)->requestOtp($request);
         }

@@ -13,16 +13,20 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::orderBy('name')->get();
+        // Paginate product listing to avoid loading the entire table into memory
+        $products = Product::orderBy('name')->paginate(50);
 
-        $totalProducts = $products->count();
-        $totalStock = $products->sum('quantity');
+        // Compute aggregates with database queries to keep memory usage low
+        $totalProducts = Product::count();
+        $totalStock = Product::sum('quantity');
         $stockInTotal = StockMovement::where('type', 'in')->sum('quantity');
         $stockOutTotal = StockMovement::where('type', 'out')->sum('quantity');
-        $inventoryValue = $products->sum(fn ($product) => $product->price * $product->quantity);
-        $lowStockProducts = $products->filter(fn ($product) => $product->isLowStock())->values();
+        $inventoryValue = (float) Product::selectRaw('COALESCE(SUM(price * quantity), 0) as value')->value('value');
+
+        // Low stock list and top products use targeted queries. Limit low-stock list to avoid large memory usage.
+        $lowStockProducts = Product::lowStock()->orderBy('quantity')->limit(100)->get();
         $recentMovements = StockMovement::with(['product', 'user'])->latest()->limit(8)->get();
-        $topProducts = $products->sortByDesc('quantity')->take(5)->values();
+        $topProducts = Product::orderByDesc('quantity')->limit(5)->get();
 
         return view('products.index', compact(
             'products',

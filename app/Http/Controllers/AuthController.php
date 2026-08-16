@@ -81,6 +81,7 @@ class AuthController extends Controller
 
     private function requiresStaffOtp(User $user): bool
     {
-        return in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager'], true);
+        // Require OTP for admin, inventory managers and sellers (agents uploading products)
+        return in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager', 'seller'], true);
     }
 }
