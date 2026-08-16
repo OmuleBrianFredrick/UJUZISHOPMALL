@@ -54,7 +54,15 @@ class StorefrontController extends Controller
             ->limit(4)
             ->get();
 
-        return view('storefront.show', compact('product', 'related'));
+        // Eager-load approved reviews with their user to avoid running multiple queries in the view
+        $product->load(['approvedReviews' => fn ($q) => $q->with('user')->latest()]);
+
+        // Compute rating and count from the loaded collection to prevent additional DB queries
+        $rating = (float) ($product->approvedReviews->avg('rating') ?? 0);
+        $rating = round($rating, 1);
+        $reviewsCount = $product->approvedReviews->count();
+
+        return view('storefront.show', compact('product', 'related', 'rating', 'reviewsCount'));
     }
 
     public function addToCart(Request $request, Product $product)

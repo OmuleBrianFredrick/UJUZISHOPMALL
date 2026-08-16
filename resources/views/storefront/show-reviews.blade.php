@@ -1,4 +1,4 @@
-@php($reviews = $product->reviews()->where('status','approved')->latest()->get())
+@php($reviews = $product->reviews()->where('status','approved')->with('user')->latest()->get())
 <section class="dashboard-panel" style="margin-top:28px;">
     <div class="panel-head"><div><h2 class="panel-title">Customer reviews</h2><p class="panel-note">Verified purchase reviews</p></div></div>
     @forelse($reviews as $review)
