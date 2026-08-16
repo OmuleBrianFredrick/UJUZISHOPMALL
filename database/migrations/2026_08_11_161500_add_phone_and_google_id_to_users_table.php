@@ -8,10 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('phone', 30)->nullable()->unique()->after('email');
-            $table->string('google_id')->nullable()->unique()->after('phone');
-        });
+        // Guard column additions so migrations can be run idempotently in test environments
+        if (!Schema::hasColumn('users', 'phone')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('phone', 30)->nullable()->unique()->after('email');
+            });
+        }
+
+        if (!Schema::hasColumn('users', 'google_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('google_id')->nullable()->unique()->after('phone');
+            });
+        }
     }
 
     public function down(): void
