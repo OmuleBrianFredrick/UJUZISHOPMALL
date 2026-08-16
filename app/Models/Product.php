@@ -18,4 +18,13 @@ class Product extends Model
     public function wishlists(): HasMany { return $this->hasMany(Wishlist::class); }
     public function averageRating(): float { return round((float) $this->approvedReviews()->avg('rating'), 1); }
     public function isLowStock(): bool { return $this->quantity <= $this->reorder_level; }
+
+    /**
+     * Query scope for low-stock products. Centralises the low-stock rule so
+     * callers (controllers, views) can reuse the same logic without reimplementing it.
+     */
+    public function scopeLowStock($query)
+    {
+        return $query->whereColumn('quantity', '<=', 'reorder_level');
+    }
 }

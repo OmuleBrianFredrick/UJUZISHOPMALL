@@ -12,7 +12,6 @@
     <div class="shop-detail-copy">
         <div class="shop-category">{{ $product->category ?: 'General' }}</div>
         <h1>{{ $product->name }}</h1>
-        @php($rating = $rating ?? 0)
         <div aria-label="{{ $rating }} out of 5 stars" style="margin:8px 0 12px;">
             @for($star = 1; $star <= 5; $star++)
                 <span>{{ $star <= round($rating) ? '★' : '☆' }}</span>
@@ -35,7 +34,7 @@
 
 <section class="dashboard-panel" style="margin-top:28px;">
     <div class="panel-head"><div><h2 class="panel-title">Customer reviews</h2><p class="panel-note">Reviews from customers who received this product</p></div></div>
-    @forelse($product->approvedReviews as $review)
+    @forelse($approvedReviews as $review)
         <article style="padding:14px 0;border-bottom:1px solid #eee;">
             <strong>{{ $review->user->name ?? 'Customer' }}</strong>
             <span style="margin-left:10px;">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</span>

@@ -1,6 +1,6 @@
 @php
     $lowStockCount = \Illuminate\Support\Facades\Cache::remember('low_stock_count', 60, function () {
-        return \App\Models\Product::whereColumn('quantity', '<=', 'reorder_level')->count();
+        return \App\Models\Product::lowStock()->count();
     });
     $cartCount = collect(session('cart', []))->sum('quantity');
 @endphp

@@ -23,8 +23,8 @@ class ProductController extends Controller
         $stockOutTotal = StockMovement::where('type', 'out')->sum('quantity');
         $inventoryValue = (float) Product::selectRaw('COALESCE(SUM(price * quantity), 0) as value')->value('value');
 
-        // Low stock list and top products use targeted queries
-        $lowStockProducts = Product::whereColumn('quantity', '<=', 'reorder_level')->get();
+        // Low stock list and top products use targeted queries. Limit low-stock list to avoid large memory usage.
+        $lowStockProducts = Product::lowStock()->orderBy('quantity')->limit(100)->get();
         $recentMovements = StockMovement::with(['product', 'user'])->latest()->limit(8)->get();
         $topProducts = Product::orderByDesc('quantity')->limit(5)->get();
 
