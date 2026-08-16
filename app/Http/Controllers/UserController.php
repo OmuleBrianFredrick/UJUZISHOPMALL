@@ -10,7 +10,8 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::latest()->get();
+        // Paginate users to avoid loading entire table into memory
+        $users = User::latest()->paginate(50);
         return view('users.index', compact('users'));
     }
 

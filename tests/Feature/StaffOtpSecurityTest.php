@@ -31,4 +31,15 @@ class StaffOtpSecurityTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->assertNull(session('pending_staff_login_user_id'));
     }
+
+    public function test_seller_is_sent_to_otp_after_password_login(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create(['role' => 'seller', 'password' => Hash::make('password')]);
+        $response = $this->post(route('login.submit'), ['email' => $user->email, 'password' => 'password']);
+        $response->assertRedirect(route('login.otp.challenge'));
+        $this->assertGuest();
+        $this->assertNotNull(session('pending_staff_login_user_id'));
+        Mail::assertSent(\App\Mail\StaffLoginOtp::class);
+    }
 }
