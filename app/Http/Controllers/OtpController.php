@@ -74,6 +74,7 @@ class OtpController extends Controller
 
     private function isPrivilegedStaff(User $user): bool
     {
-        return in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager'], true);
+        // Treat sellers as privileged staff for OTP purposes (agents uploading products)
+        return in_array(Str::lower((string) $user->role), ['admin', 'inventory_manager', 'seller'], true);
     }
 }
